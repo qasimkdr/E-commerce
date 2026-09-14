@@ -1,0 +1,4 @@
+import 'dotenv/config';import mongoose from 'mongoose';import bcrypt from 'bcryptjs';
+const Admin=mongoose.model('Admin',new mongoose.Schema({name:String,email:{type:String,unique:true,lowercase:true},passwordHash:String},{timestamps:true}));
+if(!process.env.ADMIN_EMAIL||!process.env.ADMIN_PASSWORD)throw new Error('Set ADMIN_EMAIL and ADMIN_PASSWORD first');
+await mongoose.connect(process.env.MONGO_URI);await Admin.findOneAndUpdate({email:process.env.ADMIN_EMAIL.toLowerCase()},{name:'Bakery Admin',email:process.env.ADMIN_EMAIL.toLowerCase(),passwordHash:await bcrypt.hash(process.env.ADMIN_PASSWORD,12)},{upsert:true,new:true});console.log('Admin account is ready');await mongoose.disconnect();
