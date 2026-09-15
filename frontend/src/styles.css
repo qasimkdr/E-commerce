@@ -1978,6 +1978,13 @@ tbody tr:hover {
   border-radius: 16px;
   filter: drop-shadow(0 8px 14px #4b312d26);
 }
+.product-card > .product-art {
+  height: auto;
+  aspect-ratio: 1/1;
+}
+.product-card .product-art.has-photo > img.photo-main {
+  padding: 5px;
+}
 .product-art.has-photo .orb,
 .product-art.has-photo .plate {
   display: none;
