@@ -517,10 +517,10 @@ app.patch("/api/orders/:id/archive", auth, async (req, res) => {
 app.delete("/api/orders/:id", auth, async (req, res) => {
   const order = await Order.findById(req.params.id);
   if (!order) return res.status(404).json({ message: "Order not found" });
-  if (!order.archived || !["Delivered", "Cancelled"].includes(order.status))
+  if (!["Delivered", "Cancelled"].includes(order.status))
     return res
       .status(409)
-      .json({ message: "Archive a completed order before deleting it" });
+      .json({ message: "Only delivered or cancelled orders can be deleted" });
   await order.deleteOne();
   res.json({ success: true });
 });

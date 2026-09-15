@@ -2802,7 +2802,7 @@ function Admin({
                       <Archive /> Archive
                     </button>
                   )}
-                {orderView.archived && (
+                {["Delivered", "Cancelled"].includes(orderView.status) && (
                   <button
                     className="danger-action"
                     onClick={async () => {
