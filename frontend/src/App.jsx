@@ -1429,8 +1429,15 @@ function Admin({
         "Changes are now live for every customer.",
       );
     } catch (err) {
-      setUploadStatus({ stage: err.message, percent: 0, error: true });
-      tell("Save failed", err.message);
+      const message = /invalid signature/i.test(err.message)
+        ? "Cloudinary credentials are invalid. Update the backend Cloudinary secret in Render."
+        : err.message;
+      setUploadStatus((current) => ({
+        stage: message,
+        percent: current?.percent || 0,
+        error: true,
+      }));
+      tell("Upload failed", message);
     } finally {
       setProductSubmitting(false);
     }
