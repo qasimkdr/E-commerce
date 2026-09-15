@@ -269,7 +269,7 @@ function Store({
   );
   const subtotal = cart.reduce((s, p) => s + p.price * p.quantity, 0);
   const deliveryCharge =
-    areas.find((a) => a.name === selectedArea)?.charge || 0;
+    areas.find((a) => String(a._id || a.id) === selectedArea)?.charge || 0;
   const total = subtotal + deliveryCharge;
   const minDeliveryDate = (() => {
     const d = new Date();
@@ -291,6 +291,7 @@ function Store({
         size,
         flavour: data.get("flavour"),
         message: data.get("message"),
+        colorRequest: data.get("colorRequest"),
         referenceFile: data.get("reference")?.size
           ? data.get("reference")
           : null,
@@ -326,6 +327,7 @@ function Store({
           size: x.size,
           flavour: x.flavour,
           message: x.message,
+          colorRequest: x.colorRequest,
           quantity: x.quantity,
           reference,
         });
@@ -340,7 +342,10 @@ function Store({
         delivery: {
           date: data.get("deliveryDate"),
           time: data.get("deliveryTime"),
-          area: data.get("deliveryArea"),
+          areaId: data.get("deliveryArea"),
+          area: areas.find(
+            (a) => String(a._id || a.id) === data.get("deliveryArea"),
+          )?.name,
         },
         instructions: data.get("instructions"),
       });
@@ -803,6 +808,14 @@ function Store({
                     />
                   </label>
                 )}
+                <label>
+                  Cake colour request <small>(optional)</small>
+                  <input
+                    name="colorRequest"
+                    maxLength="80"
+                    placeholder="e.g. pastel pink and white"
+                  />
+                </label>
                 {(selected.allowReference ||
                   selected.category === "Custom") && (
                   <label>
@@ -865,13 +878,52 @@ function Store({
                   <div className="cart-list">
                     {cart.map((p) => (
                       <div key={p.lineId}>
-                        <span>{p.emoji}</span>
+                        {p.images?.find(
+                          (m) => (m.resourceType || "image") === "image",
+                        )?.url ? (
+                          <img
+                            className="cart-thumb"
+                            src={
+                              p.images.find(
+                                (m) => (m.resourceType || "image") === "image",
+                              ).url
+                            }
+                            alt={p.name}
+                          />
+                        ) : (
+                          <span className="cart-emoji">{p.emoji}</span>
+                        )}
                         <p>
                           <strong>{p.name}</strong>
                           <small>
-                            {p.size} · {p.flavour}
+                            {p.size}
                             {p.message ? " · “" + p.message + "”" : ""}
                           </small>
+                          {p.colorRequest && (
+                            <small>Colour: {p.colorRequest}</small>
+                          )}
+                          <label className="cart-flavour">
+                            Flavour
+                            <select
+                              value={p.flavour}
+                              onChange={(e) =>
+                                setCart((items) =>
+                                  items.map((item) =>
+                                    item.lineId === p.lineId
+                                      ? { ...item, flavour: e.target.value }
+                                      : item,
+                                  ),
+                                )
+                              }
+                            >
+                              {(p.flavours?.length
+                                ? p.flavours
+                                : ["Vanilla", "Chocolate", "Red velvet"]
+                              ).map((flavour) => (
+                                <option key={flavour}>{flavour}</option>
+                              ))}
+                            </select>
+                          </label>
                         </p>
                         <div className="qty">
                           <button
@@ -935,7 +987,10 @@ function Store({
                       >
                         <option value="">Select area</option>
                         {areas.map((a) => (
-                          <option key={a.id} value={a.name}>
+                          <option
+                            key={a._id || a.id}
+                            value={String(a._id || a.id)}
+                          >
                             {a.name} · Rs. {money(a.charge)}
                           </option>
                         ))}
@@ -2806,6 +2861,7 @@ function Admin({
                     {item.size || "Size not set"} ·{" "}
                     {item.flavour || "Flavour not set"}
                     {item.message ? ` · “${item.message}”` : ""}
+                    {item.colorRequest ? ` · Colour: ${item.colorRequest}` : ""}
                   </p>
                 ))}
                 <p>

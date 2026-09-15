@@ -91,6 +91,7 @@ const Order = mongoose.model(
           size: String,
           flavour: String,
           message: String,
+          colorRequest: String,
           quantity: { type: Number, default: 1 },
           unitPrice: Number,
           reference: mediaSchema,
@@ -364,10 +365,9 @@ app.post("/api/orders", async (req, res) => {
     return res
       .status(400)
       .json({ message: "Your order must contain 1 to 10 cakes" });
-  const area = await DeliveryArea.findOne({
-    name: delivery?.area,
-    active: true,
-  });
+  const area = mongoose.isValidObjectId(delivery?.areaId)
+    ? await DeliveryArea.findOne({ _id: delivery.areaId, active: true })
+    : await DeliveryArea.findOne({ name: delivery?.area, active: true });
   if (!area)
     return res
       .status(400)
@@ -408,6 +408,7 @@ app.post("/api/orders", async (req, res) => {
         product.allowMessage !== false
           ? String(item.message || "").slice(0, 45)
           : "",
+      colorRequest: String(item.colorRequest || "").trim().slice(0, 80),
       quantity: Math.max(1, Math.min(10, Number(item.quantity) || 1)),
       unitPrice,
       reference:

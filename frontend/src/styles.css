@@ -622,8 +622,17 @@ button {
   padding: 10px;
   margin-bottom: 8px;
 }
-.cart-list span {
+.cart-list .cart-emoji {
   font-size: 34px;
+}
+.cart-thumb {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  border-radius: 15px;
+  object-fit: cover;
+  border: 2px solid white;
+  box-shadow: 0 5px 15px #68484320;
 }
 .cart-list p {
   display: flex;
@@ -633,6 +642,26 @@ button {
 }
 .cart-list small {
   color: var(--muted);
+}
+.cart-list .cart-flavour {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  margin: 7px 0 0;
+  color: var(--pink-dark);
+  font-size: 10px;
+}
+.cart-list .cart-flavour select {
+  min-width: 112px;
+  padding: 5px 25px 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fffafa;
+  color: var(--choc);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
 }
 .form-grid {
   display: grid;
