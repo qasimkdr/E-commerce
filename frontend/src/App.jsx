@@ -25,7 +25,7 @@ const money=n=>new Intl.NumberFormat('en-PK').format(n);
 const spring={type:'spring',stiffness:260,damping:22};
 
 function Logo(){return <div className="logo"><span><CakeSlice size={21}/></span><div>Velvet Crumb<small>CAKE STUDIO</small></div></div>}
-function ProductArt({product,large=false}){return <div className={'product-art '+(large?'large':'')} style={{'--cake':product.color}}><div className="orb one"/><div className="orb two"/><motion.div className="cake-emoji" whileHover={{rotate:-5,scale:1.08}} transition={spring}>{product.emoji}</motion.div><div className="plate"/></div>}
+function ProductArt({product,large=false}){const image=product.images?.find(m=>(m.resourceType||'image')==='image')?.url;return <div className={'product-art '+(large?'large':'')+(image?' has-photo':'')} style={{'--cake':product.color}}><div className="orb one"/><div className="orb two"/>{image?<motion.img src={image} alt={product.name} loading={large?'eager':'lazy'} whileHover={{scale:1.05}} transition={spring}/>:<motion.div className="cake-emoji" whileHover={{rotate:-5,scale:1.08}} transition={spring}>{product.emoji}</motion.div>}<div className="plate"/></div>}
 
 function Store({onAdmin,products,categories,orders,setOrders,settings,areas}){
  const [category,setCategory]=useState('All cakes'); const [query,setQuery]=useState(''); const [cart,setCart]=useState([]); const [selected,setSelected]=useState(null); const [checkout,setCheckout]=useState(false); const [success,setSuccess]=useState(false); const [menu,setMenu]=useState(false); const [selectedArea,setSelectedArea]=useState(''); const [favourites,setFavourites]=useState([]); const [tracking,setTracking]=useState(false); const [trackId,setTrackId]=useState('');
