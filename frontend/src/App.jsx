@@ -96,9 +96,9 @@ const seedProducts = [
   },
 ];
 const initialSettings = {
-  phone: "0300 1234567",
-  whatsapp: "923001234567",
-  instagram: "@velvetcrumbcakes",
+  phone: "0342 5959192",
+  whatsapp: "923425959192",
+  instagram: "@aairaskitchen634",
   leadTime: 1,
   ordersOpen: true,
 };
@@ -177,11 +177,9 @@ const spring = { type: "spring", stiffness: 260, damping: 22 };
 function Logo() {
   return (
     <div className="logo">
-      <span>
-        <CakeSlice size={21} />
-      </span>
+      <img src="/Aaira-Kitchen-Logo.png" alt="Aaira's Kitchen logo" />
       <div>
-        Velvet Crumb<small>CAKE STUDIO</small>
+        Aaira's Kitchen<small>CAKES AND FROZEN FOOD</small>
       </div>
     </div>
   );
@@ -1180,7 +1178,7 @@ function Store({
                 Your cake request is in the oven!
               </h2>
               <p className="success-copy">
-                Thank you for choosing Velvet Crumb. Our bakery team will
+                Thank you for choosing Aaira's Kitchen. Our bakery team will
                 contact you on WhatsApp within <b>24 hours</b> to confirm the
                 design, delivery time and final details.
               </p>
@@ -1436,7 +1434,7 @@ function Admin({
           `<tr><td>${i.name}<br><small>${i.size || ""} · ${i.flavour || ""}</small></td><td>${i.quantity || 1}</td><td>Rs. ${money((i.unitPrice || 0) * (i.quantity || 1))}</td></tr>`,
       )
       .join("");
-    const html = `<!doctype html><title>Invoice ${order.id}</title><style>body{font:14px Arial;color:#3f2c29;max-width:760px;margin:40px auto;padding:20px}h1{font-family:Georgia;color:#c94568}header{display:flex;justify-content:space-between;border-bottom:2px solid #eaded9}table{width:100%;border-collapse:collapse;margin:24px 0}td,th{text-align:left;padding:12px;border-bottom:1px solid #eaded9}.totals{text-align:right;line-height:2}.notice{background:#fff0f3;padding:14px;border-radius:10px}@media print{button{display:none}}</style><header><div><h1>Velvet Crumb</h1><p>Cake Studio · Karachi</p></div><div><b>ORDER ${order.id}</b><p>${order.createdAt ? new Date(order.createdAt).toLocaleString("en-PK") : ""}</p></div></header><h3>Customer</h3><p>${order.customer}<br>${order.phone}<br>${order.address}</p><h3>Delivery</h3><p>${order.date} · ${order.area || ""}</p><table><thead><tr><th>Cake</th><th>Qty</th><th>Amount</th></tr></thead><tbody>${itemRows}</tbody></table><div class="totals">Subtotal: Rs. ${money(order.subtotal)}<br>Delivery: Rs. ${money(order.deliveryCharge)}<br><b>Total: Rs. ${money(order.total)}</b><br>Payment: ${order.paymentMethod} · ${order.paymentStatus}</div><p class="notice">Our team will contact you within 24 hours to confirm this order.</p><button onclick="print()">Print / save as PDF</button>`;
+    const html = `<!doctype html><title>Invoice ${order.id}</title><style>body{font:14px Arial;color:#3f2c29;max-width:760px;margin:40px auto;padding:20px}h1{font-family:Georgia;color:#c94568}header{display:flex;justify-content:space-between;border-bottom:2px solid #eaded9}table{width:100%;border-collapse:collapse;margin:24px 0}td,th{text-align:left;padding:12px;border-bottom:1px solid #eaded9}.totals{text-align:right;line-height:2}.notice{background:#fff0f3;padding:14px;border-radius:10px}@media print{button{display:none}}</style><header><div><h1>Aaira's Kitchen</h1><p>Cakes and Frozen Food · Karachi</p></div><div><b>ORDER ${order.id}</b><p>${order.createdAt ? new Date(order.createdAt).toLocaleString("en-PK") : ""}</p></div></header><h3>Customer</h3><p>${order.customer}<br>${order.phone}<br>${order.address}</p><h3>Delivery</h3><p>${order.date} · ${order.area || ""}</p><table><thead><tr><th>Cake</th><th>Qty</th><th>Amount</th></tr></thead><tbody>${itemRows}</tbody></table><div class="totals">Subtotal: Rs. ${money(order.subtotal)}<br>Delivery: Rs. ${money(order.deliveryCharge)}<br><b>Total: Rs. ${money(order.total)}</b><br>Payment: ${order.paymentMethod} · ${order.paymentStatus}</div><p class="notice">Our team will contact you within 24 hours to confirm this order.</p><button onclick="print()">Print / save as PDF</button>`;
     const win = window.open("", "_blank");
     if (!win)
       return tell(
@@ -2826,7 +2824,7 @@ function Admin({
                 </div>
                 <div>
                   <small>WhatsApp</small>
-                  <strong>{orderView.phone || "0300 1234567"}</strong>
+                  <strong>{orderView.phone || "0342 5959192"}</strong>
                 </div>
                 <div>
                   <small>Delivery</small>

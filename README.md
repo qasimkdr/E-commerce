@@ -1,4 +1,4 @@
-# Velvet Crumb Cake Store
+# Aaira's Kitchen — Cakes and Frozen Food
 
 A full-stack MERN cake ordering platform with a guest storefront and protected admin dashboard.
 

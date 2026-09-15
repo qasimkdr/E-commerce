@@ -55,15 +55,14 @@ button {
   font-size: 20px;
   font-weight: 600;
 }
-.logo > span {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  background: linear-gradient(145deg, #f690a6, #d94d71);
-  color: white;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 8px 20px #e8688755;
+.logo > img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: white;
+  border: 2px solid #d9af62;
+  box-shadow: 0 8px 20px #17354038;
 }
 .logo small {
   display: block;
@@ -71,6 +70,7 @@ button {
   letter-spacing: 2.4px;
   color: var(--pink);
   margin-top: 2px;
+  max-width: 190px;
 }
 .store nav {
   display: flex;
@@ -1187,6 +1187,18 @@ td {
 @media (max-width: 760px) {
   .store header {
     height: 70px;
+  }
+  .store header .logo {
+    gap: 7px;
+    font-size: 16px;
+  }
+  .store header .logo > img {
+    width: 42px;
+    height: 42px;
+  }
+  .store header .logo small {
+    font-size: 6px;
+    letter-spacing: 1.25px;
   }
   .store nav {
     display: none;

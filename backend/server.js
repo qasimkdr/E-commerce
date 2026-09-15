@@ -136,6 +136,7 @@ const Settings = mongoose.model(
       instagram: String,
       leadTime: { type: Number, default: 1 },
       ordersOpen: { type: Boolean, default: true },
+      brandVersion: String,
     },
     { timestamps: true },
   ),
@@ -182,7 +183,7 @@ const slug = (s) =>
 app.get("/api/health", (req, res) =>
   res.json({
     ok: true,
-    name: "Velvet Crumb API",
+    name: "Aaira's Kitchen API",
     database:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   }),
@@ -601,6 +602,17 @@ mongoose
         },
       },
       { upsert: true },
+    );
+    await Settings.findOneAndUpdate(
+      { key: "store", brandVersion: { $ne: "aaira-v1" } },
+      {
+        $set: {
+          phone: "0342 5959192",
+          whatsapp: "923425959192",
+          instagram: "@aairaskitchen634",
+          brandVersion: "aaira-v1",
+        },
+      },
     );
     app.listen(port, () => console.log("API running on " + port));
   })
