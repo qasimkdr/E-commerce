@@ -1,100 +1,3038 @@
-import { useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { api } from './api';
-import { ArrowRight, CakeSlice, Check, ChevronRight, Clock3, Heart, LayoutDashboard, LogOut, Menu, Minus, Package, Pencil, Plus, Search, ShoppingBag, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { api } from "./api";
+import {
+  ArrowRight,
+  Archive,
+  CakeSlice,
+  Check,
+  ChevronRight,
+  Clock3,
+  Download,
+  Heart,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Minus,
+  Package,
+  Pencil,
+  Plus,
+  Search,
+  ShoppingBag,
+  Sparkles,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 
-const seedCategories=['All cakes','Birthday','Anniversary','Wedding','Kids','Custom'];
-const seedProducts=[
- {id:1,name:'Strawberry Celebration',category:'Birthday',price:2800,color:'#f8a7b8',emoji:'🍓',desc:'Vanilla sponge layered with strawberry cream.',rating:'4.9'},
- {id:2,name:'Midnight Chocolate',category:'Birthday',price:3200,color:'#5d4037',emoji:'🍫',desc:'Deep chocolate sponge with silky ganache.',rating:'4.8'},
- {id:3,name:'Butterfly Garden',category:'Kids',price:3800,color:'#d8a9d8',emoji:'🦋',desc:'A playful custom cake with handcrafted details.',rating:'5.0'},
- {id:4,name:'Rose Anniversary',category:'Anniversary',price:3500,color:'#e98493',emoji:'🌹',desc:'Soft red velvet finished with buttercream roses.',rating:'4.9'},
- {id:5,name:'Lavender Dream',category:'Wedding',price:7200,color:'#b8a1cf',emoji:'💜',desc:'Elegant layers for intimate celebrations.',rating:'4.7'},
- {id:6,name:'Your Custom Cake',category:'Custom',price:3000,color:'#f2bf91',emoji:'✨',desc:'Send your inspiration and we will make it yours.',rating:'5.0'}
+const seedCategories = [
+  "All cakes",
+  "Birthday",
+  "Anniversary",
+  "Wedding",
+  "Kids",
+  "Custom",
 ];
-const initialSettings={phone:'0300 1234567',whatsapp:'923001234567',instagram:'@velvetcrumbcakes',leadTime:1,ordersOpen:true};
-const initialAreas=[{id:1,name:'Gulshan-e-Iqbal',charge:250},{id:2,name:'Johar',charge:250},{id:3,name:'PECHS',charge:300},{id:4,name:'DHA / Clifton',charge:450},{id:5,name:'Other Karachi areas',charge:500}];
-const initialOrders=[
- {id:'VC-1048',customer:'Areeba Khan',cake:'Butterfly Garden',date:'Today, 6:00 PM',total:3800,status:'New'},
- {id:'VC-1047',customer:'Hamza Ali',cake:'Midnight Chocolate',date:'Tomorrow, 2:00 PM',total:3200,status:'Confirmed'},
- {id:'VC-1046',customer:'Maham Raza',cake:'Rose Anniversary',date:'Sep 16, 7:30 PM',total:3500,status:'Preparing'},
- {id:'VC-1045',customer:'Usman Shah',cake:'Strawberry Celebration',date:'Sep 15, 4:00 PM',total:2800,status:'Ready'}
+const seedProducts = [
+  {
+    id: 1,
+    name: "Strawberry Celebration",
+    category: "Birthday",
+    price: 2800,
+    color: "#f8a7b8",
+    emoji: "🍓",
+    desc: "Vanilla sponge layered with strawberry cream.",
+    rating: "4.9",
+  },
+  {
+    id: 2,
+    name: "Midnight Chocolate",
+    category: "Birthday",
+    price: 3200,
+    color: "#5d4037",
+    emoji: "🍫",
+    desc: "Deep chocolate sponge with silky ganache.",
+    rating: "4.8",
+  },
+  {
+    id: 3,
+    name: "Butterfly Garden",
+    category: "Kids",
+    price: 3800,
+    color: "#d8a9d8",
+    emoji: "🦋",
+    desc: "A playful custom cake with handcrafted details.",
+    rating: "5.0",
+  },
+  {
+    id: 4,
+    name: "Rose Anniversary",
+    category: "Anniversary",
+    price: 3500,
+    color: "#e98493",
+    emoji: "🌹",
+    desc: "Soft red velvet finished with buttercream roses.",
+    rating: "4.9",
+  },
+  {
+    id: 5,
+    name: "Lavender Dream",
+    category: "Wedding",
+    price: 7200,
+    color: "#b8a1cf",
+    emoji: "💜",
+    desc: "Elegant layers for intimate celebrations.",
+    rating: "4.7",
+  },
+  {
+    id: 6,
+    name: "Your Custom Cake",
+    category: "Custom",
+    price: 3000,
+    color: "#f2bf91",
+    emoji: "✨",
+    desc: "Send your inspiration and we will make it yours.",
+    rating: "5.0",
+  },
 ];
-const normalizeOrder=o=>({id:o.orderNumber||o.id||o._id,_id:o._id,customer:o.customer?.name||o.customer||'',phone:o.customer?.phone||o.phone||'',address:o.customer?.address||o.address||'',cake:o.items?.map(i=>i.name).join(', ')||o.cake||'',items:o.items||[],date:o.delivery?.date?new Date(o.delivery.date).toLocaleDateString('en-PK',{month:'short',day:'numeric'})+' '+(o.delivery.time||''):o.date,total:o.total||0,status:o.status||'New',area:o.delivery?.area||o.area,note:o.instructions||o.note});
-const money=n=>new Intl.NumberFormat('en-PK').format(n);
-const spring={type:'spring',stiffness:260,damping:22};
+const initialSettings = {
+  phone: "0300 1234567",
+  whatsapp: "923001234567",
+  instagram: "@velvetcrumbcakes",
+  leadTime: 1,
+  ordersOpen: true,
+};
+const initialAreas = [
+  { id: 1, name: "Gulshan-e-Iqbal", charge: 250 },
+  { id: 2, name: "Johar", charge: 250 },
+  { id: 3, name: "PECHS", charge: 300 },
+  { id: 4, name: "DHA / Clifton", charge: 450 },
+  { id: 5, name: "Other Karachi areas", charge: 500 },
+];
+const initialOrders = [
+  {
+    id: "VC-1048",
+    customer: "Areeba Khan",
+    cake: "Butterfly Garden",
+    date: "Today, 6:00 PM",
+    total: 3800,
+    status: "New",
+  },
+  {
+    id: "VC-1047",
+    customer: "Hamza Ali",
+    cake: "Midnight Chocolate",
+    date: "Tomorrow, 2:00 PM",
+    total: 3200,
+    status: "Confirmed",
+  },
+  {
+    id: "VC-1046",
+    customer: "Maham Raza",
+    cake: "Rose Anniversary",
+    date: "Sep 16, 7:30 PM",
+    total: 3500,
+    status: "Preparing",
+  },
+  {
+    id: "VC-1045",
+    customer: "Usman Shah",
+    cake: "Strawberry Celebration",
+    date: "Sep 15, 4:00 PM",
+    total: 2800,
+    status: "Ready",
+  },
+];
+const normalizeOrder = (o) => ({
+  id: o.orderNumber || o.id || o._id,
+  _id: o._id,
+  customer: o.customer?.name || o.customer || "",
+  phone: o.customer?.phone || o.phone || "",
+  address: o.customer?.address || o.address || "",
+  cake: o.items?.map((i) => i.name).join(", ") || o.cake || "",
+  items: o.items || [],
+  date: o.delivery?.date
+    ? new Date(o.delivery.date).toLocaleDateString("en-PK", {
+        month: "short",
+        day: "numeric",
+      }) +
+      " " +
+      (o.delivery.time || "")
+    : o.date,
+  total: o.total || 0,
+  status: o.status || "New",
+  area: o.delivery?.area || o.area,
+  note: o.instructions || o.note,
+  subtotal: o.subtotal || 0,
+  deliveryCharge: o.delivery?.charge || 0,
+  paymentMethod: o.paymentMethod || "Cash on delivery",
+  paymentStatus: o.paymentStatus || "Pending",
+  timeline: o.timeline || [],
+  archived: Boolean(o.archived),
+  createdAt: o.createdAt,
+});
+const money = (n) => new Intl.NumberFormat("en-PK").format(n);
+const spring = { type: "spring", stiffness: 260, damping: 22 };
 
-function Logo(){return <div className="logo"><span><CakeSlice size={21}/></span><div>Velvet Crumb<small>CAKE STUDIO</small></div></div>}
-function ProductArt({product,large=false}){const image=product.images?.find(m=>(m.resourceType||'image')==='image')?.url;return <div className={'product-art '+(large?'large':'')+(image?' has-photo':'')} style={{'--cake':product.color}}><div className="orb one"/><div className="orb two"/>{image?<motion.img src={image} alt={product.name} loading={large?'eager':'lazy'} whileHover={{scale:1.05}} transition={spring}/>:<motion.div className="cake-emoji" whileHover={{rotate:-5,scale:1.08}} transition={spring}>{product.emoji}</motion.div>}<div className="plate"/></div>}
-
-function Store({onAdmin,products,categories,orders,setOrders,settings,areas}){
- const [category,setCategory]=useState('All cakes'); const [query,setQuery]=useState(''); const [cart,setCart]=useState([]); const [selected,setSelected]=useState(null); const [checkout,setCheckout]=useState(false); const [success,setSuccess]=useState(false); const [menu,setMenu]=useState(false); const [selectedArea,setSelectedArea]=useState(''); const [favourites,setFavourites]=useState([]); const [tracking,setTracking]=useState(false); const [trackId,setTrackId]=useState(''); const [trackResult,setTrackResult]=useState(null); const [trackError,setTrackError]=useState(''); const [trackLoading,setTrackLoading]=useState(false);
- const shown=useMemo(()=>products.filter(p=>(category==='All cakes'||p.category===category)&&p.name.toLowerCase().includes(query.toLowerCase())),[category,query]);
- const subtotal=cart.reduce((s,p)=>s+p.price*p.quantity,0); const deliveryCharge=areas.find(a=>a.name===selectedArea)?.charge||0; const total=subtotal+deliveryCharge; const minDeliveryDate=(()=>{const d=new Date();d.setDate(d.getDate()+Number(settings.leadTime||0));return d.toISOString().split('T')[0]})();
- const add=(e,p)=>{e.preventDefault();const data=new FormData(e.currentTarget);const size=data.get('size');const configured=p.sizes?.find(s=>s.label===size)?.price;const multiplier=size==='2 pounds'?1.8:size==='3 pounds'?2.6:1;setCart(items=>[...items,{...p,lineId:Date.now(),size,flavour:data.get('flavour'),message:data.get('message'),referenceFile:data.get('reference')?.size?data.get('reference'):null,price:configured||Math.round(p.price*multiplier),quantity:1}]);setSelected(null)};
- const quantity=(lineId,change)=>setCart(items=>items.map(x=>x.lineId===lineId?{...x,quantity:Math.max(1,x.quantity+change)}:x));
- const submit=async e=>{e.preventDefault();const data=new FormData(e.currentTarget);try{const securedItems=[];for(const x of cart){let reference;if(x.referenceFile)reference=await api.uploadReference(x.referenceFile);securedItems.push({product:x._id||x.id,name:x.name,size:x.size,flavour:x.flavour,message:x.message,quantity:x.quantity,reference})}const saved=await api.createOrder({customer:{name:data.get('customer'),phone:data.get('phone'),address:data.get('address')},items:securedItems,delivery:{date:data.get('deliveryDate'),time:data.get('deliveryTime'),area:data.get('deliveryArea')},instructions:data.get('instructions'),paymentMethod:'Cash on delivery'});const order=normalizeOrder(saved);setOrders(x=>[order,...x]);setCheckout(false);setCart([]);setSuccess(order.id);setTimeout(()=>setSuccess(false),5000)}catch(err){alert(err.message)}};
- return <div className="store">
-  {!settings.ordersOpen&&<div className="pause-banner"><Clock3/> Online orders are temporarily paused. You can still explore our collection.</div>}
-  <header><Logo/><nav className={menu?'open':''}><a href="#cakes">Shop cakes</a><a href="#custom">Custom orders</a><a href="#about">Our story</a><button className="text-btn" onClick={()=>setTracking(true)}>Track order</button><button className="text-btn" onClick={onAdmin}>Admin</button></nav><div className="header-actions"><button className="icon-btn mobile" onClick={()=>setMenu(!menu)}><Menu/></button><button className="bag-btn" onClick={()=>cart.length&&setCheckout(true)}><ShoppingBag size={20}/><span>{cart.length}</span></button></div></header>
-  <main>
-   <section className="hero">
-    <div className="hero-copy"><div className="eyebrow"><Sparkles size={16}/> Handmade in Karachi</div><h1>Little moments.<br/><em>Beautifully baked.</em></h1><p>Fresh celebration cakes handcrafted for birthdays, anniversaries and every sweet reason in between.</p><div className="hero-actions"><a className="primary" href="#cakes">Explore cakes <ArrowRight size={18}/></a><a className="secondary" href="#custom">Design my cake</a></div><div className="trust"><div><strong>500+</strong><span>cakes delivered</span></div><div><strong>4.9</strong><span>customer rating</span></div><div><strong>Fresh</strong><span>made to order</span></div></div></div>
-    <motion.div className="hero-visual" initial={{opacity:0,y:30}} animate={{opacity:1,y:0}} transition={{duration:.8}}><div className="float-note top">Made with love <Heart size={14} fill="currentColor"/></div><ProductArt product={products[0]} large/><div className="float-note bottom"><Clock3 size={16}/> Order 24h ahead</div></motion.div>
-   </section>
-   <section id="cakes" className="catalog">
-    <div className="section-heading"><div><span>OUR COLLECTION</span><h2>Pick your favourite</h2></div><label className="search"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search cakes"/></label></div>
-    <div className="filters">{categories.map(c=><button key={c} className={category===c?'active':''} onClick={()=>setCategory(c)}>{c}</button>)}</div>
-    <motion.div layout className="product-grid"><AnimatePresence>{shown.map(p=><motion.article layout key={p.id} className="product-card" initial={{opacity:0,scale:.94}} animate={{opacity:1,scale:1}} exit={{opacity:0,scale:.94}} whileHover={{y:-8,rotateX:2,rotateY:-2}} transition={spring}><button className={'heart '+(favourites.includes(p.id)?'liked':'')} onClick={()=>setFavourites(x=>x.includes(p.id)?x.filter(id=>id!==p.id):[...x,p.id])} aria-label="Save cake"><Heart size={18} fill={favourites.includes(p.id)?'currentColor':'none'}/></button><ProductArt product={p}/><div className="product-info"><div className="meta"><span>{p.category}</span><span>★ {p.rating}</span></div><h3>{p.name}</h3><p>{p.desc}</p><div className="product-bottom"><div><small>Starting from</small><strong>Rs. {money(p.price)}</strong></div><button onClick={()=>setSelected(p)}><Plus size={19}/></button></div></div></motion.article>)}</AnimatePresence></motion.div>{shown.length===0&&<div className="empty-products"><Search/><h3>No cakes found</h3><p>Try another name or choose a different category.</p><button onClick={()=>{setCategory('All cakes');setQuery('')}}>Clear filters</button></div>}
-   </section>
-   <section id="custom" className="custom-section"><div><span className="eyebrow">MADE JUST FOR YOU</span><h2>Have a cake in mind?</h2><p>Share your reference picture, celebration date and ideas. Our team will contact you with the final design and price.</p><button className="primary" onClick={()=>setSelected(products.find(p=>p.category==='Custom')||products[0])}>Start custom order <ChevronRight/></button></div><div className="custom-art"><span>🎂</span><i>your idea</i><b>+</b><i>our craft</i></div></section>
-   <section id="about" className="story-section"><div className="section-heading"><div><span>FROM IDEA TO CELEBRATION</span><h2>Ordering made simple</h2></div><p>Every cake is baked after confirmation so it reaches you fresh and exactly as planned.</p></div><div className="steps"><article><b>01</b><span>🍰</span><h3>Choose your cake</h3><p>Pick a design, size and flavour or share your own inspiration.</p></article><article><b>02</b><span>💬</span><h3>We confirm details</h3><p>Our team contacts you on WhatsApp to confirm design, price and delivery.</p></article><article><b>03</b><span>✨</span><h3>Freshly prepared</h3><p>We handcraft your cake close to the celebration date.</p></article><article><b>04</b><span>🎉</span><h3>Ready to celebrate</h3><p>Receive it at the confirmed time and make the moment sweeter.</p></article></div></section>
-   <section className="review-section"><div><span className="eyebrow">LOVED BY KARACHI</span><h2>Sweet words from<br/>our customers</h2><div className="review-score"><strong>4.9</strong><span>★★★★★<small>Based on happy celebrations</small></span></div></div><div className="reviews"><motion.blockquote whileHover={{y:-6}}>“The cake looked exactly like the reference and tasted even better. Everyone loved it.”<footer><b>Ayesha M.</b><span>Birthday cake</span></footer></motion.blockquote><motion.blockquote whileHover={{y:-6}}>“Fresh, beautiful and delivered carefully. The WhatsApp confirmation made ordering very easy.”<footer><b>Hira K.</b><span>Anniversary cake</span></footer></motion.blockquote></div></section>
-  </main>
-  <footer><Logo/><p>Freshly baked in Karachi. Every celebration deserves something sweet.</p><div><a href={'https://instagram.com/'+settings.instagram.replace('@','')} target="_blank">Instagram</a><a href={'https://wa.me/'+settings.whatsapp} target="_blank">WhatsApp</a><button className="text-btn" onClick={onAdmin}>Admin login</button></div></footer>
-  <AnimatePresence>{selected&&<motion.div className="modal-wrap" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onMouseDown={()=>setSelected(null)}><motion.form className="modal product-modal" initial={{y:70,scale:.95}} animate={{y:0,scale:1}} exit={{y:70,opacity:0}} onSubmit={e=>add(e,selected)} onMouseDown={e=>e.stopPropagation()}><button type="button" className="close" onClick={()=>setSelected(null)}><X/></button><div className="media-showcase"><ProductArt product={selected}/>{selected.images?.length>1&&<div className="media-thumbs">{selected.images.slice(0,5).map((m,i)=><button type="button" key={m.publicId||i} onClick={()=>setSelected({...selected,images:[m,...selected.images.filter(x=>x.publicId!==m.publicId)]})}><img src={m.url} alt={selected.name+' view '+(i+1)}/></button>)}</div>}{selected.video?.url&&<video className="cake-video" src={selected.video.url} controls playsInline preload="metadata"/>}</div><div><span className="eyebrow">{selected.category}</span><h2>{selected.name}</h2><p>{selected.desc}</p><label>Size / weight<select name="size">{(selected.sizes?.length?selected.sizes:[{label:'1 pound'},{label:'2 pounds'},{label:'3 pounds'}]).map(s=><option key={s.label} value={s.label}>{s.label}{s.price?' · Rs. '+money(s.price):''}</option>)}</select></label><label>Flavour<select name="flavour">{(selected.flavours?.length?selected.flavours:['Vanilla','Chocolate','Red velvet']).map(x=><option key={x}>{x}</option>)}</select></label>{selected.allowMessage!==false&&<label>Message on cake<input name="message" maxLength="45" placeholder="e.g. Happy Birthday Sara"/></label>}{(selected.allowReference||selected.category==='Custom')&&<label>Reference photo<input name="reference" type="file" accept="image/*"/></label>}<button className="primary wide">Add to order · from Rs. {money(selected.price)}</button></div></motion.form></motion.div>}</AnimatePresence>
-  <AnimatePresence>{checkout&&<motion.div className="modal-wrap" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}><motion.form className="modal checkout" initial={{x:'100%'}} animate={{x:0}} exit={{x:'100%'}} onSubmit={submit}><button type="button" className="close" onClick={()=>setCheckout(false)}><X/></button><span className="eyebrow">GUEST CHECKOUT</span><h2>Complete your order</h2><div className="cart-list">{cart.map(p=><div key={p.lineId}><span>{p.emoji}</span><p><strong>{p.name}</strong><small>{p.size} · {p.flavour}{p.message?' · “'+p.message+'”':''}</small></p><div className="qty"><button type="button" onClick={()=>quantity(p.lineId,-1)}><Minus/></button><b>{p.quantity}</b><button type="button" onClick={()=>quantity(p.lineId,1)}><Plus/></button></div><b>Rs. {money(p.price*p.quantity)}</b><button type="button" className="remove-line" onClick={()=>setCart(x=>x.filter(i=>i.lineId!==p.lineId))}><Trash2/></button></div>)}</div><div className="form-grid"><label>Full name<input name="customer" required placeholder="Your name"/></label><label>WhatsApp number<input name="phone" required pattern="0[0-9]{10}" placeholder="03XX XXXXXXX"/></label><label className="full">Delivery address<textarea name="address" required placeholder="House, street and area"/></label><label>Delivery area<select name="deliveryArea" required value={selectedArea} onChange={e=>setSelectedArea(e.target.value)}><option value="">Select area</option>{areas.map(a=><option key={a.id} value={a.name}>{a.name} · Rs. {money(a.charge)}</option>)}</select></label><label>Delivery date<input name="deliveryDate" min={minDeliveryDate} required type="date"/></label><label>Preferred time<input name="deliveryTime" required type="time"/></label><label className="full">Special instructions<textarea name="instructions" placeholder="Anything our baker should know?"/></label></div><div className="cost-lines"><div><span>Cakes subtotal</span><b>Rs. {money(subtotal)}</b></div><div><span>Delivery</span><b>{selectedArea?'Rs. '+money(deliveryCharge):'Select area'}</b></div></div><div className="checkout-total"><span>Estimated total<small>Final design confirmed on WhatsApp</small></span><strong>Rs. {money(total)}</strong></div><button className="primary wide" disabled={!settings.ordersOpen}>{settings.ordersOpen?'Place order':'Orders temporarily paused'}</button></motion.form></motion.div>}</AnimatePresence>
-  <AnimatePresence>{tracking&&<motion.div className="modal-wrap" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onMouseDown={()=>setTracking(false)}><motion.form className="modal track-modal" initial={{y:35,scale:.96}} animate={{y:0,scale:1}} onSubmit={async e=>{e.preventDefault();setTrackLoading(true);setTrackError('');setTrackResult(null);try{setTrackResult(normalizeOrder(await api.track(trackId.trim())))}catch(err){setTrackError(err.message)}finally{setTrackLoading(false)}}} onMouseDown={e=>e.stopPropagation()}><button type="button" className="close" onClick={()=>setTracking(false)}><X/></button><span className="eyebrow">ORDER TRACKING</span><h2>Where is my cake?</h2><p>Enter the order number shown after checkout.</p><label>Order number<input required value={trackId} onChange={e=>setTrackId(e.target.value.toUpperCase())} placeholder="VC-12345678"/></label><button className="primary wide" disabled={trackLoading}>{trackLoading?'Checking…':'Track my order'}</button>{trackResult&&<div className="track-result"><div><span className={'status '+trackResult.status.toLowerCase().replaceAll(' ','-')}>{trackResult.status}</span><strong>{trackResult.cake}</strong><small>Delivery: {trackResult.date}</small></div><div className="track-line"><i/><i/><i/><i/></div><p>Your order is currently <b>{trackResult.status.toLowerCase()}</b>. Contact the bakery if you need to change its delivery details.</p></div>}{trackError&&<div className="track-missing">{trackError}</div>}</motion.form></motion.div>}</AnimatePresence>
-  <AnimatePresence>{success&&<motion.div className="toast" initial={{y:-30,opacity:0}} animate={{y:0,opacity:1}} exit={{opacity:0}}><span><Check/></span><div><strong>Order {success} received!</strong><small>Our team will contact you shortly.</small></div></motion.div>}</AnimatePresence>
- </div>
+function Logo() {
+  return (
+    <div className="logo">
+      <span>
+        <CakeSlice size={21} />
+      </span>
+      <div>
+        Velvet Crumb<small>CAKE STUDIO</small>
+      </div>
+    </div>
+  );
+}
+function ProductArt({ product, large = false }) {
+  const image = product.images?.find(
+    (m) => (m.resourceType || "image") === "image",
+  )?.url;
+  return (
+    <div
+      className={
+        "product-art " + (large ? "large" : "") + (image ? " has-photo" : "")
+      }
+      style={{ "--cake": product.color }}
+    >
+      <div className="orb one" />
+      <div className="orb two" />
+      {image ? (
+        <motion.img
+          src={image}
+          alt={product.name}
+          loading={large ? "eager" : "lazy"}
+          whileHover={{ scale: 1.05 }}
+          transition={spring}
+        />
+      ) : (
+        <motion.div
+          className="cake-emoji"
+          whileHover={{ rotate: -5, scale: 1.08 }}
+          transition={spring}
+        >
+          {product.emoji}
+        </motion.div>
+      )}
+      <div className="plate" />
+    </div>
+  );
 }
 
-function Notice({notice}){return <AnimatePresence>{notice&&<motion.div className="toast admin-toast" initial={{y:-25,opacity:0}} animate={{y:0,opacity:1}} exit={{opacity:0}}><span><Check/></span><div><strong>{notice.title}</strong><small>{notice.text}</small></div></motion.div>}</AnimatePresence>}
-
-function Admin({onStore,products,setProducts,categories,setCategories,orders,setOrders,settings,setSettings,areas,setAreas}){
- const [tab,setTab]=useState('Overview'); const [login,setLogin]=useState(!localStorage.getItem('vc-token')); const [email,setEmail]=useState(''); const [password,setPassword]=useState('');
- const [editor,setEditor]=useState(null); const [orderView,setOrderView]=useState(null); const [categoryEditor,setCategoryEditor]=useState(false); const [notice,setNotice]=useState(null); const [orderQuery,setOrderQuery]=useState(''); const [areaEditor,setAreaEditor]=useState(false); const [passwordMode,setPasswordMode]=useState(null); const [sessionExpired,setSessionExpired]=useState(false);
- useEffect(()=>{const expired=()=>{setSessionExpired(true);setLogin(true)};window.addEventListener('vc-session-expired',expired);return()=>window.removeEventListener('vc-session-expired',expired)},[]);
- const statuses=['New','Contacted','Confirmed','Preparing','Ready','Out for delivery','Delivered','Cancelled'];
- const exportOrders=()=>{const rows=[['Order','Customer','Cake','Delivery','Total','Status'],...orders.map(o=>[o.id,o.customer,o.cake,o.date,o.total,o.status])];const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='cake-orders.csv';a.click();URL.revokeObjectURL(a.href);tell('Orders exported','The CSV file is ready to download.')};
- const cakeSales=products.map(p=>({name:p.name,count:orders.reduce((n,o)=>n+(o.cake||'').includes(p.name),0)})).sort((a,b)=>b.count-a.count).slice(0,5);
- const tell=(title,text)=>{setNotice({title,text});setTimeout(()=>setNotice(null),2800)};
- const advance=async id=>{const current=orders.find(x=>x.id===id);const status=statuses[Math.min(statuses.indexOf(current.status)+1,6)];try{if(current._id)await api.updateOrder(current._id,status);setOrders(o=>o.map(x=>x.id===id?{...x,status}:x));tell('Progress updated',id+' is now '+status+'.')}catch(err){tell('Update failed',err.message)}};
- const removeProduct=async id=>{if(!confirm('Delete this cake from the collection?'))return;try{if(String(id).length===24)await api.deleteProduct(id);setProducts(p=>p.filter(x=>x.id!==id));tell('Cake deleted','The live storefront collection has been updated.')}catch(err){tell('Delete failed',err.message)}};
- const saveProduct=async e=>{e.preventDefault();const data=new FormData(e.currentTarget);try{let images=editor.images||[];let video=editor.video;for(const file of data.getAll('media').filter(f=>f.size)){const uploaded=await api.upload(file);if(uploaded.resourceType==='video'){if(editor._id&&video?.publicId)await api.deleteMedia(editor._id,video.publicId,'video');video=uploaded}else images=[...images,uploaded]}const sizes=[['1 pound',data.get('price1')],['2 pounds',data.get('price2')],['3 pounds',data.get('price3')]].filter(x=>Number(x[1])>0).map(([label,price])=>({label,price:Number(price)}));const payload={name:data.get('name'),category:data.get('category'),basePrice:Number(data.get('price')),color:data.get('color'),emoji:data.get('emoji')||'🎂',description:data.get('desc'),images,video,sizes,flavours:String(data.get('flavours')||'').split(',').map(x=>x.trim()).filter(Boolean),featured:data.get('featured')==='on',bestseller:data.get('bestseller')==='on',available:data.get('available')==='on',allowMessage:data.get('allowMessage')==='on',allowReference:data.get('allowReference')==='on'};const saved=editor._id?await api.updateProduct(editor._id,payload):await api.createProduct(payload);const item={...saved,id:saved._id,price:saved.basePrice,desc:saved.description||'',rating:editor.rating||'New'};setProducts(p=>editor._id?p.map(x=>x.id===editor.id?item:x):[item,...p]);setEditor(null);tell(editor._id?'Cake updated':'Cake added','Changes are now live for every customer.')}catch(err){tell('Save failed',err.message)}};
- const removeMedia=async(media,type='image')=>{try{if(editor._id)await api.deleteMedia(editor._id,media.publicId,type);setEditor(x=>type==='video'?{...x,video:null}:{...x,images:x.images.filter(m=>m.publicId!==media.publicId)});setProducts(ps=>ps.map(p=>p.id===editor.id?(type==='video'?{...p,video:null}:{...p,images:p.images.filter(m=>m.publicId!==media.publicId)}):p));tell('Media removed','The Cloudinary file was deleted.')}catch(err){tell('Delete failed',err.message)}};
- const moveMedia=(index,direction)=>setEditor(x=>{const images=[...(x.images||[])];const target=index+direction;if(target<0||target>=images.length)return x;[images[index],images[target]]=[images[target],images[index]];return {...x,images}});
- const makePrimary=index=>setEditor(x=>{const images=[...(x.images||[])];const [chosen]=images.splice(index,1);return {...x,images:[chosen,...images]}});
- const addCategory=async e=>{e.preventDefault();const name=new FormData(e.currentTarget).get('category').trim();try{if(name&&!categories.includes(name)){await api.createCategory({name});setCategories(x=>[...x,name])}setCategoryEditor(false);tell('Category saved','The live filters have been updated.')}catch(err){tell('Save failed',err.message)}};
- if(login)return <div className="login-page"><motion.div className="login-card" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}><Logo/><span className="eyebrow">BAKERY ADMIN</span><h1>Welcome back</h1><p>Manage cakes, orders and deliveries in one place.</p><form onSubmit={async e=>{e.preventDefault();try{const result=await api.login(email,password);localStorage.setItem('vc-token',result.token);setOrders((await api.orders()).map(normalizeOrder));setLogin(false)}catch(err){alert(err.message)}}}><label>Email address<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="admin@bakery.com"/></label><label>Password<input type="password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></label><button className="primary wide">Sign in <ArrowRight/></button></form><small className="demo-note">Use the administrator credentials configured in Render.</small>{sessionExpired&&<div className="session-message">Your session expired. Please sign in again.</div>}<button className="forgot-link" onClick={()=>setPasswordMode('recover')}>Forgot password?</button><button className="text-btn back" onClick={onStore}>← Return to store</button></motion.div>{passwordMode==='recover'&&<motion.div className="modal-wrap" initial={{opacity:0}} animate={{opacity:1}}><motion.form className="modal small-editor" initial={{scale:.94}} animate={{scale:1}} onSubmit={async e=>{e.preventDefault();const d=new FormData(e.currentTarget);try{await api.recoverPassword(d.get('email'),d.get('recoveryCode'),d.get('newPassword'));setPasswordMode(null);setSessionExpired(false);alert('Password reset. Sign in with your new password.')}catch(err){alert(err.message)}}}><button type="button" className="close" onClick={()=>setPasswordMode(null)}><X/></button><span className="eyebrow">ACCOUNT RECOVERY</span><h2>Reset password</h2><p className="recovery-help">Use the private recovery code configured in Render.</p><label>Admin email<input name="email" type="email" required/></label><label>Recovery code<input name="recoveryCode" type="password" required/></label><label>New password<input name="newPassword" type="password" minLength="8" required/></label><button className="primary wide">Reset password</button></motion.form></motion.div>}</div>;
- const filteredOrders=orders.filter(o=>(o.id+o.customer+o.cake).toLowerCase().includes(orderQuery.toLowerCase()));
- return <div className="admin"><Notice notice={notice}/><aside><Logo/><div className="admin-nav">{['Overview','Orders','Analytics','Cakes','Categories','Settings'].map(x=><button key={x} className={tab===x?'active':''} onClick={()=>setTab(x)}>{x==='Overview'?<LayoutDashboard/>:x==='Orders'?<Package/>:x==='Cakes'?<CakeSlice/>:<Sparkles/>}{x}{x==='Orders'&&<b>{orders.filter(o=>o.status==='New').length}</b>}</button>)}</div><button className="logout" onClick={()=>{localStorage.removeItem('vc-token');setLogin(true)}}><LogOut/> Log out</button></aside><section className="admin-main"><div className="admin-top"><div><span>{new Date().toLocaleDateString('en-PK',{weekday:'long',month:'long',day:'numeric'})}</span><h1>{tab}</h1></div><button className="primary" onClick={onStore}>View storefront <ArrowRight/></button></div>
- {tab==='Overview'&&<><div className="stats"><article><span>Active orders</span><strong>{orders.filter(o=>!['Delivered','Cancelled'].includes(o.status)).length}</strong><small className="up">Live preparation queue</small></article><article><span>New requests</span><strong>{orders.filter(o=>o.status==='New').length}</strong><small>Needs your attention</small></article><article><span>In preparation</span><strong>{orders.filter(o=>o.status==='Preparing').length}</strong><small>Kitchen workload</small></article><article><span>Order value</span><strong>Rs. {money(orders.reduce((s,o)=>s+o.total,0))}</strong><small className="up">Current sample period</small></article></div><div className="dashboard-grid"><div className="panel"><div className="panel-title"><div><h2>Upcoming orders</h2><p>Keep every celebration on schedule.</p></div><button onClick={()=>setTab('Orders')}>View all</button></div><OrderTable orders={orders.slice(0,4)} advance={advance} onView={setOrderView}/></div><div className="panel deliveries"><div className="panel-title"><div><h2>Order progress</h2><p>{orders.length} total orders</p></div></div>{['Confirmed','Preparing','Ready','Delivered'].map(label=>{const count=orders.filter(o=>o.status===label).length;return <div className="progress-row" key={label}><div><span>{label}</span><b>{count}</b></div><div><i style={{width:(count/orders.length*100||0)+'%'}}/></div></div>})}</div></div></>}
- {tab==='Orders'&&<div className="panel full-panel"><div className="panel-title"><div><h2>All orders</h2><p>Open an order to review details or update progress.</p></div><div className="panel-actions"><button className="export-btn" onClick={exportOrders}>Export CSV</button><label className="search"><Search/><input value={orderQuery} onChange={e=>setOrderQuery(e.target.value)} placeholder="Search orders"/></label></div></div><OrderTable orders={filteredOrders} advance={advance} onView={setOrderView}/></div>}
- {tab==='Analytics'&&<div className="analytics-layout"><div className="panel revenue-panel"><div className="panel-title"><div><h2>Sales overview</h2><p>Order value across the current demo period.</p></div><strong>Rs. {money(orders.reduce((s,o)=>s+o.total,0))}</strong></div><div className="bar-chart">{orders.slice(0,7).reverse().map((o,i)=>{const max=Math.max(...orders.map(x=>x.total),1);return <div key={o.id}><span style={{height:Math.max(12,o.total/max*100)+'%'}} title={o.id+' · Rs. '+money(o.total)}/><small>{o.id.replace('VC-','')}</small></div>})}</div></div><div className="panel"><div className="panel-title"><div><h2>Order status</h2><p>Current workflow distribution.</p></div></div><div className="status-breakdown">{statuses.filter(s=>orders.some(o=>o.status===s)).map(s=>{const count=orders.filter(o=>o.status===s).length;return <div key={s}><span className={'status '+s.toLowerCase().replaceAll(' ','-')}>{s}</span><div><i style={{width:(count/orders.length*100)+'%'}}/></div><b>{count}</b></div>})}</div></div><div className="panel popular-panel"><div className="panel-title"><div><h2>Popular cakes</h2><p>Products appearing most often in orders.</p></div></div>{cakeSales.map((p,i)=><div className="popular-row" key={p.name}><b>{i+1}</b><span>{p.name}</span><strong>{p.count} orders</strong></div>)}</div><div className="panel insight-card"><Sparkles/><div><span>BUSINESS INSIGHT</span><h3>{orders.filter(o=>o.status==='New').length} orders need confirmation</h3><p>Contact new customers first, then move confirmed orders into preparation.</p></div></div></div>}
- {tab==='Cakes'&&<div className="panel full-panel"><div className="panel-title"><div><h2>Cake collection</h2><p>Add, edit or remove products and upload their Cloudinary media.</p></div><button className="primary" onClick={()=>setEditor({color:'#f8a7b8',emoji:'🎂',category:categories[1]})}><Plus/> Add cake</button></div>{products.length?<div className="admin-products">{products.map(p=><article key={p.id}><ProductArt product={p}/><div><span>{p.category}</span><h3>{p.name}</h3><strong>Rs. {money(p.price)}</strong></div><div className="row-actions"><button title="Edit cake media" onClick={()=>setEditor(p)}><Upload/></button><button onClick={()=>setEditor(p)}><Pencil/></button><button className="danger" onClick={()=>removeProduct(p.id)}><Trash2/></button></div></article>)}</div>:<div className="empty-state"><CakeSlice/><h3>No cakes yet</h3><p>Add your first cake to show it in the storefront.</p></div>}</div>}
- {tab==='Categories'&&<div className="panel full-panel"><div className="panel-title"><div><h2>Categories</h2><p>Organize how customers discover cakes.</p></div><button className="primary" onClick={()=>setCategoryEditor(true)}><Plus/> Add category</button></div><div className="category-admin">{categories.slice(1).map((x,i)=><div key={x}><span style={{background:['#f8a7b8','#e98493','#d8a9d8','#b8a1cf','#f2bf91'][i%5]}}>{['🎈','💞','💍','🧸','✨'][i%5]}</span><div><strong>{x}</strong><small>{products.filter(p=>p.category===x).length} products</small></div><button className="danger" onClick={async()=>{if(products.some(p=>p.category===x))return tell('Category in use','Move its cakes before deleting this category.');try{await api.deleteCategory(encodeURIComponent(x));setCategories(c=>c.filter(y=>y!==x));tell('Category deleted','The live storefront filters were updated.')}catch(err){tell('Delete failed',err.message)}}}><Trash2/></button></div>)}</div></div>}
- {tab==='Settings'&&<div className="settings-grid"><form className="panel settings-panel" onSubmit={async e=>{e.preventDefault();const d=new FormData(e.currentTarget);const next={phone:d.get('phone'),whatsapp:d.get('whatsapp'),instagram:d.get('instagram'),leadTime:Number(d.get('leadTime')),ordersOpen:d.get('ordersOpen')==='on'};try{const saved=await api.updateSettings(next);setSettings(s=>({...s,...saved}));tell('Settings saved','The live storefront rules were updated.')}catch(err){tell('Save failed',err.message)}}}><div className="panel-title"><div><h2>Store settings</h2><p>Manage ordering availability and customer contact details.</p></div></div><div className="form-grid"><label>Public phone<input name="phone" defaultValue={settings.phone}/></label><label>WhatsApp number<input name="whatsapp" defaultValue={settings.whatsapp}/></label><label>Instagram username<input name="instagram" defaultValue={settings.instagram}/></label><label>Minimum lead time<input name="leadTime" type="number" min="0" defaultValue={settings.leadTime}/></label><label className="full toggle-row"><input name="ordersOpen" type="checkbox" defaultChecked={settings.ordersOpen}/><span><strong>Accept new orders</strong><small>Turn this off to temporarily pause checkout.</small></span></label></div><div className="settings-actions"><button className="primary">Save settings</button><button type="button" className="secondary" onClick={()=>setPasswordMode('change')}>Change password</button></div></form><div className="panel settings-panel"><div className="panel-title"><div><h2>Delivery areas</h2><p>Charges are automatically added during checkout.</p></div><button className="primary" onClick={()=>setAreaEditor(true)}><Plus/> Add area</button></div><div className="area-list">{areas.map(a=><div key={a.id}><span><strong>{a.name}</strong><small>Delivery charge</small></span><b>Rs. {money(a.charge)}</b><button className="danger" onClick={async()=>{try{if(String(a.id).length===24)await api.deleteArea(a.id);setAreas(x=>x.filter(y=>y.id!==a.id));tell('Area removed','Live checkout options were updated.')}catch(err){tell('Delete failed',err.message)}}}><Trash2/></button></div>)}</div></div></div>}
- </section>
- <AnimatePresence>{editor&&<motion.div className="modal-wrap" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}><motion.form className="modal admin-editor" initial={{y:45,scale:.96}} animate={{y:0,scale:1}} exit={{opacity:0}} onSubmit={saveProduct}><button type="button" className="close" onClick={()=>setEditor(null)}><X/></button><span className="eyebrow">{editor.id?'EDIT CAKE':'NEW CAKE'}</span><h2>{editor.id?'Update cake':'Add to collection'}</h2><div className="form-grid"><label>Name<input name="name" required defaultValue={editor.name}/></label><label>Category<select name="category" defaultValue={editor.category}>{categories.slice(1).map(x=><option key={x}>{x}</option>)}</select></label><label>Starting price<input name="price" required min="1" type="number" defaultValue={editor.price}/></label><label>Card colour<input name="color" type="color" defaultValue={editor.color}/></label><label>Display icon<input name="emoji" defaultValue={editor.emoji}/></label><label className="full">Description<textarea name="desc" required defaultValue={editor.desc}/></label><label>1 pound price<input name="price1" type="number" min="0" defaultValue={editor.sizes?.find(s=>s.label==='1 pound')?.price||editor.price}/></label><label>2 pounds price<input name="price2" type="number" min="0" defaultValue={editor.sizes?.find(s=>s.label==='2 pounds')?.price}/></label><label>3 pounds price<input name="price3" type="number" min="0" defaultValue={editor.sizes?.find(s=>s.label==='3 pounds')?.price}/></label><label className="full">Flavours, separated by commas<input name="flavours" defaultValue={editor.flavours?.join(', ')||'Vanilla, Chocolate, Red velvet'}/></label><div className="full product-switches"><label><input name="available" type="checkbox" defaultChecked={editor.available!==false}/> Available</label><label><input name="featured" type="checkbox" defaultChecked={editor.featured}/> Featured</label><label><input name="bestseller" type="checkbox" defaultChecked={editor.bestseller}/> Bestseller</label><label><input name="allowMessage" type="checkbox" defaultChecked={editor.allowMessage!==false}/> Cake message</label><label><input name="allowReference" type="checkbox" defaultChecked={editor.allowReference||editor.category==='Custom'}/> Reference image</label></div></div><label className="upload-zone"><Upload/><div><strong>Upload cake photos or a short video</strong><small>Select multiple files. Each file can be up to 25 MB.</small></div><input name="media" multiple type="file" accept="image/*,video/*"/></label>{(editor.images?.length||editor.video)&&<div className="media-manager">{editor.images?.map((m,i)=><div key={m.publicId||i} className={i===0?'primary-media':''}><img src={m.url} alt="Cake media"/><span>{i===0?'Primary':'Image '+(i+1)}</span><div><button type="button" title="Move left" onClick={()=>moveMedia(i,-1)}>←</button><button type="button" title="Make primary" onClick={()=>makePrimary(i)}><Heart/></button><button type="button" title="Move right" onClick={()=>moveMedia(i,1)}>→</button><button type="button" className="danger" title="Delete" onClick={()=>removeMedia(m)}><Trash2/></button></div></div>)}{editor.video&&<div className="video-manager"><video src={editor.video.url} controls/><span>Product video</span><button type="button" className="danger" onClick={()=>removeMedia(editor.video,'video')}><Trash2/> Delete video</button></div>}</div>}<button className="primary wide">Save cake</button></motion.form></motion.div>}</AnimatePresence>
- <AnimatePresence>{passwordMode==='change'&&<motion.div className="modal-wrap" initial={{opacity:0}} animate={{opacity:1}}><motion.form className="modal small-editor" initial={{scale:.94}} animate={{scale:1}} onSubmit={async e=>{e.preventDefault();const d=new FormData(e.currentTarget);if(d.get('newPassword')!==d.get('confirmPassword'))return tell('Passwords do not match','Enter the same new password twice.');try{await api.changePassword(d.get('currentPassword'),d.get('newPassword'));setPasswordMode(null);tell('Password changed','Use your new password next time you sign in.')}catch(err){tell('Change failed',err.message)}}}><button type="button" className="close" onClick={()=>setPasswordMode(null)}><X/></button><span className="eyebrow">ACCOUNT SECURITY</span><h2>Change password</h2><label>Current password<input name="currentPassword" type="password" required/></label><label>New password<input name="newPassword" type="password" minLength="8" required/></label><label>Confirm new password<input name="confirmPassword" type="password" minLength="8" required/></label><button className="primary wide">Update password</button></motion.form></motion.div>}</AnimatePresence>
- <AnimatePresence>{passwordMode==='recover'&&<motion.div className="modal-wrap" initial={{opacity:0}} animate={{opacity:1}}><motion.form className="modal small-editor" initial={{scale:.94}} animate={{scale:1}} onSubmit={async e=>{e.preventDefault();const d=new FormData(e.currentTarget);try{await api.recoverPassword(d.get('email'),d.get('recoveryCode'),d.get('newPassword'));setPasswordMode(null);tell('Password reset','You can now sign in with the new password.')}catch(err){alert(err.message)}}}><button type="button" className="close" onClick={()=>setPasswordMode(null)}><X/></button><span className="eyebrow">ACCOUNT RECOVERY</span><h2>Reset password</h2><p className="recovery-help">Use the private recovery code configured in Render.</p><label>Admin email<input name="email" type="email" required/></label><label>Recovery code<input name="recoveryCode" type="password" required/></label><label>New password<input name="newPassword" type="password" minLength="8" required/></label><button className="primary wide">Reset password</button></motion.form></motion.div>}</AnimatePresence>
- <AnimatePresence>{areaEditor&&<motion.div className="modal-wrap" initial={{opacity:0}} animate={{opacity:1}}><motion.form className="modal small-editor" initial={{scale:.94}} animate={{scale:1}} onSubmit={async e=>{e.preventDefault();const d=new FormData(e.currentTarget);try{const saved=await api.createArea({name:d.get('area'),charge:Number(d.get('charge'))});setAreas(x=>[...x,{...saved,id:saved._id}]);setAreaEditor(false);tell('Delivery area added','Customers can now select it in live checkout.')}catch(err){tell('Save failed',err.message)}}}><button type="button" className="close" onClick={()=>setAreaEditor(false)}><X/></button><span className="eyebrow">DELIVERY AREA</span><h2>Add an area</h2><label>Area name<input name="area" required placeholder="e.g. North Nazimabad"/></label><label>Delivery charge<input name="charge" required min="0" type="number" placeholder="300"/></label><button className="primary wide">Save area</button></motion.form></motion.div>}</AnimatePresence>
- <AnimatePresence>{categoryEditor&&<motion.div className="modal-wrap" initial={{opacity:0}} animate={{opacity:1}}><motion.form className="modal small-editor" initial={{scale:.94}} animate={{scale:1}} onSubmit={addCategory}><button type="button" className="close" onClick={()=>setCategoryEditor(false)}><X/></button><span className="eyebrow">NEW CATEGORY</span><h2>Organize your cakes</h2><label>Category name<input name="category" required placeholder="e.g. Graduation"/></label><button className="primary wide">Add category</button></motion.form></motion.div>}</AnimatePresence>
- <AnimatePresence>{orderView&&<motion.div className="modal-wrap" initial={{opacity:0}} animate={{opacity:1}} onMouseDown={()=>setOrderView(null)}><motion.div className="modal order-detail" initial={{x:60,opacity:0}} animate={{x:0,opacity:1}} onMouseDown={e=>e.stopPropagation()}><button className="close" onClick={()=>setOrderView(null)}><X/></button><span className="eyebrow">ORDER {orderView.id}</span><h2>{orderView.cake}</h2><div className="detail-grid"><div><small>Customer</small><strong>{orderView.customer}</strong></div><div><small>WhatsApp</small><strong>{orderView.phone||'0300 1234567'}</strong></div><div><small>Delivery</small><strong>{orderView.date}</strong></div><div><small>Amount</small><strong>Rs. {money(orderView.total)}</strong></div></div><div className="customer-note"><strong>Order notes</strong><p>1 pound · Vanilla flavour · “Happy Birthday” written on cake.</p><p>{orderView.address||'Delivery address will appear after confirmation.'}</p>{orderView.note&&<p>{orderView.note}</p>}</div><label>Order progress<select value={orderView.status} onChange={async e=>{const status=e.target.value;try{if(orderView._id)await api.updateOrder(orderView._id,status);setOrders(o=>o.map(x=>x.id===orderView.id?{...x,status}:x));setOrderView({...orderView,status});tell('Progress updated','Order '+orderView.id+' is now '+status+'.')}catch(err){tell('Update failed',err.message)}}}>{statuses.map(x=><option key={x}>{x}</option>)}</select></label><button className="primary wide" onClick={()=>setOrderView(null)}>Save and close</button></motion.div></motion.div>}</AnimatePresence>
- </div>
+function Store({
+  onAdmin,
+  products,
+  categories,
+  orders,
+  setOrders,
+  settings,
+  areas,
+  loading,
+}) {
+  const [category, setCategory] = useState("All cakes");
+  const [query, setQuery] = useState("");
+  const [cart, setCart] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [checkout, setCheckout] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [selectedArea, setSelectedArea] = useState("");
+  const [favourites, setFavourites] = useState([]);
+  const [tracking, setTracking] = useState(false);
+  const [trackId, setTrackId] = useState("");
+  const [trackResult, setTrackResult] = useState(null);
+  const [trackError, setTrackError] = useState("");
+  const [trackLoading, setTrackLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [legal, setLegal] = useState(null);
+  const [placing, setPlacing] = useState(false);
+  const shown = useMemo(
+    () =>
+      products.filter(
+        (p) =>
+          (category === "All cakes" || p.category === category) &&
+          p.name.toLowerCase().includes(query.toLowerCase()),
+      ),
+    [category, query],
+  );
+  const subtotal = cart.reduce((s, p) => s + p.price * p.quantity, 0);
+  const deliveryCharge =
+    areas.find((a) => a.name === selectedArea)?.charge || 0;
+  const total = subtotal + deliveryCharge;
+  const minDeliveryDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + Number(settings.leadTime || 0));
+    return d.toISOString().split("T")[0];
+  })();
+  const add = (e, p) => {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    const size = data.get("size");
+    const configured = p.sizes?.find((s) => s.label === size)?.price;
+    const multiplier =
+      size === "2 pounds" ? 1.8 : size === "3 pounds" ? 2.6 : 1;
+    setCart((items) => [
+      ...items,
+      {
+        ...p,
+        lineId: Date.now(),
+        size,
+        flavour: data.get("flavour"),
+        message: data.get("message"),
+        referenceFile: data.get("reference")?.size
+          ? data.get("reference")
+          : null,
+        price: configured || Math.round(p.price * multiplier),
+        quantity: 1,
+      },
+    ]);
+    setSelected(null);
+  };
+  const quantity = (lineId, change) =>
+    setCart((items) =>
+      items.map((x) =>
+        x.lineId === lineId
+          ? { ...x, quantity: Math.max(1, x.quantity + change) }
+          : x,
+      ),
+    );
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!cart.length) return;
+    setPlacing(true);
+    const data = new FormData(e.currentTarget);
+    try {
+      const securedItems = [];
+      for (const x of cart) {
+        let reference;
+        if (x.referenceFile)
+          reference = await api.uploadReference(x.referenceFile);
+        securedItems.push({
+          product: x._id || x.id,
+          name: x.name,
+          size: x.size,
+          flavour: x.flavour,
+          message: x.message,
+          quantity: x.quantity,
+          reference,
+        });
+      }
+      const saved = await api.createOrder({
+        customer: {
+          name: data.get("customer"),
+          phone: data.get("phone"),
+          address: data.get("address"),
+        },
+        items: securedItems,
+        delivery: {
+          date: data.get("deliveryDate"),
+          time: data.get("deliveryTime"),
+          area: data.get("deliveryArea"),
+        },
+        instructions: data.get("instructions"),
+      });
+      const order = normalizeOrder(saved);
+      setOrders((x) => [order, ...x]);
+      setCheckout(false);
+      setCart([]);
+      setSuccess(order.id);
+      setTimeout(() => setSuccess(false), 5000);
+    } catch (err) {
+      setMessage({ title: "Order not placed", text: err.message, error: true });
+      setTimeout(() => setMessage(null), 4500);
+    } finally {
+      setPlacing(false);
+    }
+  };
+  return (
+    <div className="store">
+      {!settings.ordersOpen && (
+        <div className="pause-banner">
+          <Clock3 /> Online orders are temporarily paused. You can still explore
+          our collection.
+        </div>
+      )}
+      <header>
+        <Logo />
+        <nav className={menu ? "open" : ""}>
+          <a href="#cakes">Shop cakes</a>
+          <a href="#custom">Custom orders</a>
+          <a href="#about">Our story</a>
+          <button className="text-btn" onClick={() => setTracking(true)}>
+            Track order
+          </button>
+          <button className="text-btn" onClick={onAdmin}>
+            Admin
+          </button>
+        </nav>
+        <div className="header-actions">
+          <button className="icon-btn mobile" onClick={() => setMenu(!menu)}>
+            <Menu />
+          </button>
+          <button
+            className="bag-btn"
+            onClick={() => setCheckout(true)}
+            aria-label={`Shopping bag with ${cart.length} items`}
+          >
+            <ShoppingBag size={20} />
+            <span>{cart.length}</span>
+          </button>
+        </div>
+      </header>
+      <main>
+        <section className="hero">
+          <div className="hero-copy">
+            <div className="eyebrow">
+              <Sparkles size={16} /> Handmade in Karachi
+            </div>
+            <h1>
+              Little moments.
+              <br />
+              <em>Beautifully baked.</em>
+            </h1>
+            <p>
+              Fresh celebration cakes handcrafted for birthdays, anniversaries
+              and every sweet reason in between.
+            </p>
+            <div className="hero-actions">
+              <a className="primary" href="#cakes">
+                Explore cakes <ArrowRight size={18} />
+              </a>
+              <a className="secondary" href="#custom">
+                Design my cake
+              </a>
+            </div>
+            <div className="trust">
+              <div>
+                <strong>500+</strong>
+                <span>cakes delivered</span>
+              </div>
+              <div>
+                <strong>4.9</strong>
+                <span>customer rating</span>
+              </div>
+              <div>
+                <strong>Fresh</strong>
+                <span>made to order</span>
+              </div>
+            </div>
+          </div>
+          <motion.div
+            className="hero-visual"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <div className="float-note top">
+              Made with love <Heart size={14} fill="currentColor" />
+            </div>
+            <ProductArt product={products[0]} large />
+            <div className="float-note bottom">
+              <Clock3 size={16} /> Order 24h ahead
+            </div>
+          </motion.div>
+        </section>
+        <section id="cakes" className="catalog">
+          <div className="section-heading">
+            <div>
+              <span>OUR COLLECTION</span>
+              <h2>Pick your favourite</h2>
+            </div>
+            <label className="search">
+              <Search size={18} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search cakes"
+              />
+            </label>
+          </div>
+          <div className="filters">
+            {categories.map((c) => (
+              <button
+                key={c}
+                className={category === c ? "active" : ""}
+                onClick={() => setCategory(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          {loading ? (
+            <div className="product-grid" aria-label="Loading cakes">
+              {[1, 2, 3, 4, 5, 6].map((x) => (
+                <div className="product-skeleton" key={x}>
+                  <i />
+                  <span />
+                  <b />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <motion.div layout className="product-grid">
+              <AnimatePresence>
+                {shown.map((p) => (
+                  <motion.article
+                    layout
+                    key={p.id}
+                    className="product-card"
+                    initial={{ opacity: 0, scale: 0.94 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.94 }}
+                    whileHover={{ y: -8, rotateX: 2, rotateY: -2 }}
+                    transition={spring}
+                  >
+                    <button
+                      className={
+                        "heart " + (favourites.includes(p.id) ? "liked" : "")
+                      }
+                      onClick={() =>
+                        setFavourites((x) =>
+                          x.includes(p.id)
+                            ? x.filter((id) => id !== p.id)
+                            : [...x, p.id],
+                        )
+                      }
+                      aria-label="Save cake"
+                    >
+                      <Heart
+                        size={18}
+                        fill={
+                          favourites.includes(p.id) ? "currentColor" : "none"
+                        }
+                      />
+                    </button>
+                    <ProductArt product={p} />
+                    <div className="product-info">
+                      <div className="meta">
+                        <span>{p.category}</span>
+                        <span>★ {p.rating}</span>
+                      </div>
+                      <h3>{p.name}</h3>
+                      <p>{p.desc}</p>
+                      <div className="product-bottom">
+                        <div>
+                          <small>Starting from</small>
+                          <strong>Rs. {money(p.price)}</strong>
+                        </div>
+                        <button onClick={() => setSelected(p)}>
+                          <Plus size={19} />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.article>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          )}
+          {!loading && shown.length === 0 && (
+            <div className="empty-products">
+              <Search />
+              <h3>No cakes found</h3>
+              <p>Try another name or choose a different category.</p>
+              <button
+                onClick={() => {
+                  setCategory("All cakes");
+                  setQuery("");
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
+        </section>
+        <section id="custom" className="custom-section">
+          <div>
+            <span className="eyebrow">MADE JUST FOR YOU</span>
+            <h2>Have a cake in mind?</h2>
+            <p>
+              Share your reference picture, celebration date and ideas. Our team
+              will contact you with the final design and price.
+            </p>
+            <button
+              className="primary"
+              onClick={() =>
+                setSelected(
+                  products.find((p) => p.category === "Custom") || products[0],
+                )
+              }
+            >
+              Start custom order <ChevronRight />
+            </button>
+          </div>
+          <div className="custom-art">
+            <span>🎂</span>
+            <i>your idea</i>
+            <b>+</b>
+            <i>our craft</i>
+          </div>
+        </section>
+        <section id="about" className="story-section">
+          <div className="section-heading">
+            <div>
+              <span>FROM IDEA TO CELEBRATION</span>
+              <h2>Ordering made simple</h2>
+            </div>
+            <p>
+              Every cake is baked after confirmation so it reaches you fresh and
+              exactly as planned.
+            </p>
+          </div>
+          <div className="steps">
+            <article>
+              <b>01</b>
+              <span>🍰</span>
+              <h3>Choose your cake</h3>
+              <p>
+                Pick a design, size and flavour or share your own inspiration.
+              </p>
+            </article>
+            <article>
+              <b>02</b>
+              <span>💬</span>
+              <h3>We confirm details</h3>
+              <p>
+                Our team contacts you on WhatsApp to confirm design, price and
+                delivery.
+              </p>
+            </article>
+            <article>
+              <b>03</b>
+              <span>✨</span>
+              <h3>Freshly prepared</h3>
+              <p>We handcraft your cake close to the celebration date.</p>
+            </article>
+            <article>
+              <b>04</b>
+              <span>🎉</span>
+              <h3>Ready to celebrate</h3>
+              <p>
+                Receive it at the confirmed time and make the moment sweeter.
+              </p>
+            </article>
+          </div>
+        </section>
+        <section className="review-section">
+          <div>
+            <span className="eyebrow">LOVED BY KARACHI</span>
+            <h2>
+              Sweet words from
+              <br />
+              our customers
+            </h2>
+            <div className="review-score">
+              <strong>4.9</strong>
+              <span>
+                ★★★★★<small>Based on happy celebrations</small>
+              </span>
+            </div>
+          </div>
+          <div className="reviews">
+            <motion.blockquote whileHover={{ y: -6 }}>
+              “The cake looked exactly like the reference and tasted even
+              better. Everyone loved it.”
+              <footer>
+                <b>Ayesha M.</b>
+                <span>Birthday cake</span>
+              </footer>
+            </motion.blockquote>
+            <motion.blockquote whileHover={{ y: -6 }}>
+              “Fresh, beautiful and delivered carefully. The WhatsApp
+              confirmation made ordering very easy.”
+              <footer>
+                <b>Hira K.</b>
+                <span>Anniversary cake</span>
+              </footer>
+            </motion.blockquote>
+          </div>
+        </section>
+      </main>
+      <footer>
+        <Logo />
+        <p>
+          Freshly baked in Karachi. Every celebration deserves something sweet.
+        </p>
+        <div>
+          <a
+            href={
+              "https://instagram.com/" + settings.instagram.replace("@", "")
+            }
+            target="_blank"
+          >
+            Instagram
+          </a>
+          <a href={"https://wa.me/" + settings.whatsapp} target="_blank">
+            WhatsApp
+          </a>
+          <button className="text-btn" onClick={() => setLegal("delivery")}>
+            Delivery & cancellation
+          </button>
+          <button className="text-btn" onClick={() => setLegal("privacy")}>
+            Privacy
+          </button>
+          <button className="text-btn" onClick={() => setLegal("terms")}>
+            Terms
+          </button>
+          <button className="text-btn" onClick={onAdmin}>
+            Admin login
+          </button>
+        </div>
+      </footer>
+      <AnimatePresence>
+        {selected && (
+          <motion.div
+            className="modal-wrap"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={() => setSelected(null)}
+          >
+            <motion.form
+              className="modal product-modal"
+              initial={{ y: 70, scale: 0.95 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ y: 70, opacity: 0 }}
+              onSubmit={(e) => add(e, selected)}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="close"
+                onClick={() => setSelected(null)}
+              >
+                <X />
+              </button>
+              <div className="media-showcase">
+                <ProductArt product={selected} />
+                {selected.images?.length > 1 && (
+                  <div className="media-thumbs">
+                    {selected.images.slice(0, 5).map((m, i) => (
+                      <button
+                        type="button"
+                        key={m.publicId || i}
+                        onClick={() =>
+                          setSelected({
+                            ...selected,
+                            images: [
+                              m,
+                              ...selected.images.filter(
+                                (x) => x.publicId !== m.publicId,
+                              ),
+                            ],
+                          })
+                        }
+                      >
+                        <img
+                          src={m.url}
+                          alt={selected.name + " view " + (i + 1)}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selected.video?.url && (
+                  <video
+                    className="cake-video"
+                    src={selected.video.url}
+                    controls
+                    playsInline
+                    preload="metadata"
+                  />
+                )}
+              </div>
+              <div>
+                <span className="eyebrow">{selected.category}</span>
+                <h2>{selected.name}</h2>
+                <p>{selected.desc}</p>
+                <label>
+                  Size / weight
+                  <select name="size">
+                    {(selected.sizes?.length
+                      ? selected.sizes
+                      : [
+                          { label: "1 pound" },
+                          { label: "2 pounds" },
+                          { label: "3 pounds" },
+                        ]
+                    ).map((s) => (
+                      <option key={s.label} value={s.label}>
+                        {s.label}
+                        {s.price ? " · Rs. " + money(s.price) : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Flavour
+                  <select name="flavour">
+                    {(selected.flavours?.length
+                      ? selected.flavours
+                      : ["Vanilla", "Chocolate", "Red velvet"]
+                    ).map((x) => (
+                      <option key={x}>{x}</option>
+                    ))}
+                  </select>
+                </label>
+                {selected.allowMessage !== false && (
+                  <label>
+                    Message on cake
+                    <input
+                      name="message"
+                      maxLength="45"
+                      placeholder="e.g. Happy Birthday Sara"
+                    />
+                  </label>
+                )}
+                {(selected.allowReference ||
+                  selected.category === "Custom") && (
+                  <label>
+                    Reference photo
+                    <input name="reference" type="file" accept="image/*" />
+                  </label>
+                )}
+                <button className="primary wide">
+                  Add to order · from Rs. {money(selected.price)}
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {checkout && (
+          <motion.div
+            className="modal-wrap"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.form
+              className="modal checkout"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              onSubmit={submit}
+            >
+              <button
+                type="button"
+                className="close"
+                onClick={() => setCheckout(false)}
+              >
+                <X />
+              </button>
+              <span className="eyebrow">GUEST CHECKOUT</span>
+              <h2>
+                {cart.length ? "Complete your order" : "Your bag is waiting"}
+              </h2>
+              {!cart.length ? (
+                <div className="empty-cart">
+                  <ShoppingBag />
+                  <h3>No cakes added yet</h3>
+                  <p>
+                    Explore the collection, choose a size and flavour, then come
+                    back here to place your order.
+                  </p>
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={() => setCheckout(false)}
+                  >
+                    Browse cakes
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="cart-list">
+                    {cart.map((p) => (
+                      <div key={p.lineId}>
+                        <span>{p.emoji}</span>
+                        <p>
+                          <strong>{p.name}</strong>
+                          <small>
+                            {p.size} · {p.flavour}
+                            {p.message ? " · “" + p.message + "”" : ""}
+                          </small>
+                        </p>
+                        <div className="qty">
+                          <button
+                            type="button"
+                            onClick={() => quantity(p.lineId, -1)}
+                          >
+                            <Minus />
+                          </button>
+                          <b>{p.quantity}</b>
+                          <button
+                            type="button"
+                            onClick={() => quantity(p.lineId, 1)}
+                          >
+                            <Plus />
+                          </button>
+                        </div>
+                        <b>Rs. {money(p.price * p.quantity)}</b>
+                        <button
+                          type="button"
+                          className="remove-line"
+                          onClick={() =>
+                            setCart((x) =>
+                              x.filter((i) => i.lineId !== p.lineId),
+                            )
+                          }
+                        >
+                          <Trash2 />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="form-grid">
+                    <label>
+                      Full name
+                      <input name="customer" required placeholder="Your name" />
+                    </label>
+                    <label>
+                      WhatsApp number
+                      <input
+                        name="phone"
+                        required
+                        pattern="0[0-9]{10}"
+                        placeholder="03XX XXXXXXX"
+                      />
+                    </label>
+                    <label className="full">
+                      Delivery address
+                      <textarea
+                        name="address"
+                        required
+                        placeholder="House, street and area"
+                      />
+                    </label>
+                    <label>
+                      Delivery area
+                      <select
+                        name="deliveryArea"
+                        required
+                        value={selectedArea}
+                        onChange={(e) => setSelectedArea(e.target.value)}
+                      >
+                        <option value="">Select area</option>
+                        {areas.map((a) => (
+                          <option key={a.id} value={a.name}>
+                            {a.name} · Rs. {money(a.charge)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Delivery date
+                      <input
+                        name="deliveryDate"
+                        min={minDeliveryDate}
+                        required
+                        type="date"
+                      />
+                    </label>
+                    <label>
+                      Preferred time
+                      <input name="deliveryTime" required type="time" />
+                    </label>
+                    <label className="full">
+                      Special instructions
+                      <textarea
+                        name="instructions"
+                        placeholder="Anything our baker should know?"
+                      />
+                    </label>
+                  </div>
+                  <div className="cost-lines">
+                    <div>
+                      <span>Cakes subtotal</span>
+                      <b>Rs. {money(subtotal)}</b>
+                    </div>
+                    <div>
+                      <span>Delivery</span>
+                      <b>
+                        {selectedArea
+                          ? "Rs. " + money(deliveryCharge)
+                          : "Select area"}
+                      </b>
+                    </div>
+                  </div>
+                  <div className="checkout-total">
+                    <span>
+                      Estimated total
+                      <small>Final design confirmed on WhatsApp</small>
+                    </span>
+                    <strong>Rs. {money(total)}</strong>
+                  </div>
+                  <div className="payment-note">
+                    <strong>Cash on delivery</strong>
+                    <span>Pay when your confirmed order arrives.</span>
+                  </div>
+                  <button
+                    className="primary wide"
+                    disabled={!settings.ordersOpen || placing}
+                  >
+                    {placing
+                      ? "Placing order…"
+                      : settings.ordersOpen
+                        ? "Place order"
+                        : "Orders temporarily paused"}
+                  </button>
+                </>
+              )}
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {tracking && (
+          <motion.div
+            className="modal-wrap"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={() => setTracking(false)}
+          >
+            <motion.form
+              className="modal track-modal"
+              initial={{ y: 35, scale: 0.96 }}
+              animate={{ y: 0, scale: 1 }}
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setTrackLoading(true);
+                setTrackError("");
+                setTrackResult(null);
+                try {
+                  setTrackResult(
+                    normalizeOrder(await api.track(trackId.trim())),
+                  );
+                } catch (err) {
+                  setTrackError(err.message);
+                } finally {
+                  setTrackLoading(false);
+                }
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="close"
+                onClick={() => setTracking(false)}
+              >
+                <X />
+              </button>
+              <span className="eyebrow">ORDER TRACKING</span>
+              <h2>Where is my cake?</h2>
+              <p>Enter the order number shown after checkout.</p>
+              <label>
+                Order number
+                <input
+                  required
+                  value={trackId}
+                  onChange={(e) => setTrackId(e.target.value.toUpperCase())}
+                  placeholder="VC-12345678"
+                />
+              </label>
+              <button className="primary wide" disabled={trackLoading}>
+                {trackLoading ? "Checking…" : "Track my order"}
+              </button>
+              {trackResult && (
+                <div className="track-result">
+                  <div>
+                    <span
+                      className={
+                        "status " +
+                        trackResult.status.toLowerCase().replaceAll(" ", "-")
+                      }
+                    >
+                      {trackResult.status}
+                    </span>
+                    <strong>{trackResult.cake}</strong>
+                    <small>Delivery: {trackResult.date}</small>
+                  </div>
+                  <div className="track-line">
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                  </div>
+                  <p>
+                    Your order is currently{" "}
+                    <b>{trackResult.status.toLowerCase()}</b>. Contact the
+                    bakery if you need to change its delivery details.
+                  </p>
+                </div>
+              )}
+              {trackError && <div className="track-missing">{trackError}</div>}
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {success && (
+          <motion.div
+            className="toast"
+            initial={{ y: -30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <span>
+              <Check />
+            </span>
+            <div>
+              <strong>Order {success} received!</strong>
+              <small>
+                Our team will contact you within 24 hours to confirm your order.
+              </small>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {message && (
+          <motion.div
+            role="status"
+            aria-live="polite"
+            className={`toast ${message.error ? "error-toast" : ""}`}
+            initial={{ y: -25, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <span>{message.error ? <X /> : <Check />}</span>
+            <div>
+              <strong>{message.title}</strong>
+              <small>{message.text}</small>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {legal && (
+          <motion.div
+            className="modal-wrap"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onMouseDown={() => setLegal(null)}
+          >
+            <motion.article
+              className="modal legal-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="legal-title"
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <button
+                className="close"
+                aria-label="Close policy"
+                onClick={() => setLegal(null)}
+              >
+                <X />
+              </button>
+              <span className="eyebrow">CUSTOMER INFORMATION</span>
+              <h2 id="legal-title">
+                {legal === "delivery"
+                  ? "Delivery & cancellation"
+                  : legal === "privacy"
+                    ? "Privacy policy"
+                    : "Terms of service"}
+              </h2>
+              {legal === "delivery" ? (
+                <>
+                  <h3>Delivery</h3>
+                  <p>
+                    Delivery charges are shown at checkout and depend on the
+                    selected area. Dates and times remain provisional until our
+                    team confirms the order within 24 hours.
+                  </p>
+                  <h3>Cancellation</h3>
+                  <p>
+                    Please request changes or cancellation before preparation
+                    begins. Once ingredients or custom decorations have been
+                    prepared, cancellation may no longer be possible.
+                  </p>
+                </>
+              ) : legal === "privacy" ? (
+                <>
+                  <p>
+                    We collect only the name, phone number, address, order
+                    details and optional reference image needed to prepare and
+                    deliver your cake.
+                  </p>
+                  <p>
+                    Information is shared only with the bakery team and delivery
+                    partners where necessary. We do not sell customer
+                    information.
+                  </p>
+                  <p>
+                    Contact the bakery to request correction or deletion of your
+                    information, subject to records we must retain for
+                    legitimate business purposes.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p>
+                    Orders are requests until confirmed by our team. Product
+                    appearance may vary slightly because every cake is handmade.
+                  </p>
+                  <p>
+                    Prices and delivery fees shown at checkout are recorded with
+                    your request. Payment is cash on delivery only.
+                  </p>
+                  <p>
+                    Customers are responsible for providing accurate contact,
+                    delivery and allergy information. Please discuss allergies
+                    before confirmation.
+                  </p>
+                </>
+              )}
+            </motion.article>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
-function OrderTable({orders,advance,onView}){return <div className="table-wrap"><table><thead><tr><th>Order</th><th>Customer</th><th>Cake</th><th>Delivery</th><th>Total</th><th>Status</th><th/></tr></thead><tbody>{orders.map(o=><tr key={o.id} onClick={()=>onView(o)}><td><strong>{o.id}</strong></td><td>{o.customer}</td><td>{o.cake}</td><td>{o.date}</td><td>Rs. {money(o.total)}</td><td><span className={'status '+o.status.toLowerCase().replaceAll(' ','-')}>{o.status}</span></td><td><button className="next" onClick={e=>{e.stopPropagation();advance(o.id)}} title="Move to next stage"><ChevronRight/></button></td></tr>)}</tbody></table></div>}
-export default function App(){const [admin,setAdmin]=useState(location.hash==='#admin');const [products,setProducts]=useState(()=>JSON.parse(localStorage.getItem('vc-products')||'null')||seedProducts);const [categories,setCategories]=useState(()=>JSON.parse(localStorage.getItem('vc-categories')||'null')||seedCategories);const [orders,setOrders]=useState(()=>JSON.parse(localStorage.getItem('vc-orders')||'null')||initialOrders);const [settings,setSettings]=useState(()=>JSON.parse(localStorage.getItem('vc-settings')||'null')||initialSettings);const [areas,setAreas]=useState(()=>JSON.parse(localStorage.getItem('vc-areas')||'null')||initialAreas);
-useEffect(()=>{(async()=>{try{const [remoteProducts,remoteCategories,store]=await Promise.all([api.products(),api.categories(),api.store()]);if(remoteProducts.length)setProducts(remoteProducts.map(p=>({...p,id:p._id,price:p.basePrice,desc:p.description||'',emoji:p.emoji||'🎂',color:p.color||'#f8a7b8',rating:'New'})));if(remoteCategories.length)setCategories(['All cakes',...remoteCategories.map(x=>x.name)]);if(store.settings)setSettings(s=>({...s,...store.settings}));if(store.areas?.length)setAreas(store.areas.map(a=>({...a,id:a._id})));if(localStorage.getItem('vc-token'))setOrders((await api.orders()).map(normalizeOrder))}catch(err){console.warn('Using saved storefront data:',err.message)}})()},[]);
-useEffect(()=>localStorage.setItem('vc-products',JSON.stringify(products)),[products]);useEffect(()=>localStorage.setItem('vc-categories',JSON.stringify(categories)),[categories]);useEffect(()=>localStorage.setItem('vc-orders',JSON.stringify(orders)),[orders]);useEffect(()=>localStorage.setItem('vc-settings',JSON.stringify(settings)),[settings]);useEffect(()=>localStorage.setItem('vc-areas',JSON.stringify(areas)),[areas]);return admin?<Admin products={products} setProducts={setProducts} categories={categories} setCategories={setCategories} orders={orders} setOrders={setOrders} settings={settings} setSettings={setSettings} areas={areas} setAreas={setAreas} onStore={()=>{setAdmin(false);location.hash=''}}/>:<Store products={products} categories={categories} orders={orders} setOrders={setOrders} settings={settings} areas={areas} onAdmin={()=>{setAdmin(true);location.hash='admin'}}/>}
+
+function Notice({ notice }) {
+  return (
+    <AnimatePresence>
+      {notice && (
+        <motion.div
+          className="toast admin-toast"
+          initial={{ y: -25, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <span>
+            <Check />
+          </span>
+          <div>
+            <strong>{notice.title}</strong>
+            <small>{notice.text}</small>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function Admin({
+  onStore,
+  products,
+  setProducts,
+  categories,
+  setCategories,
+  orders,
+  setOrders,
+  settings,
+  setSettings,
+  areas,
+  setAreas,
+}) {
+  const [tab, setTab] = useState("Overview");
+  const [login, setLogin] = useState(!localStorage.getItem("vc-token"));
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [editor, setEditor] = useState(null);
+  const [orderView, setOrderView] = useState(null);
+  const [categoryEditor, setCategoryEditor] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const [orderQuery, setOrderQuery] = useState("");
+  const [areaEditor, setAreaEditor] = useState(false);
+  const [passwordMode, setPasswordMode] = useState(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  useEffect(() => {
+    const expired = () => {
+      setSessionExpired(true);
+      setLogin(true);
+    };
+    window.addEventListener("vc-session-expired", expired);
+    return () => window.removeEventListener("vc-session-expired", expired);
+  }, []);
+  const statuses = [
+    "New",
+    "Contacted",
+    "Confirmed",
+    "Preparing",
+    "Ready",
+    "Out for delivery",
+    "Delivered",
+    "Cancelled",
+  ];
+  const exportOrders = () => {
+    const rows = [
+      ["Order", "Customer", "Cake", "Delivery", "Total", "Status"],
+      ...orders.map((o) => [
+        o.id,
+        o.customer,
+        o.cake,
+        o.date,
+        o.total,
+        o.status,
+      ]),
+    ];
+    const csv = rows
+      .map((r) =>
+        r.map((v) => '"' + String(v).replaceAll('"', '""') + '"').join(","),
+      )
+      .join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = "cake-orders.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+    tell("Orders exported", "The CSV file is ready to download.");
+  };
+  const cakeSales = products
+    .map((p) => ({
+      name: p.name,
+      count: orders.reduce((n, o) => n + (o.cake || "").includes(p.name), 0),
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+  const tell = (title, text) => {
+    setNotice({ title, text });
+    setTimeout(() => setNotice(null), 2800);
+  };
+  const printInvoice = (order) => {
+    const itemRows = (order.items || [])
+      .map(
+        (i) =>
+          `<tr><td>${i.name}<br><small>${i.size || ""} · ${i.flavour || ""}</small></td><td>${i.quantity || 1}</td><td>Rs. ${money((i.unitPrice || 0) * (i.quantity || 1))}</td></tr>`,
+      )
+      .join("");
+    const html = `<!doctype html><title>Invoice ${order.id}</title><style>body{font:14px Arial;color:#3f2c29;max-width:760px;margin:40px auto;padding:20px}h1{font-family:Georgia;color:#c94568}header{display:flex;justify-content:space-between;border-bottom:2px solid #eaded9}table{width:100%;border-collapse:collapse;margin:24px 0}td,th{text-align:left;padding:12px;border-bottom:1px solid #eaded9}.totals{text-align:right;line-height:2}.notice{background:#fff0f3;padding:14px;border-radius:10px}@media print{button{display:none}}</style><header><div><h1>Velvet Crumb</h1><p>Cake Studio · Karachi</p></div><div><b>ORDER ${order.id}</b><p>${order.createdAt ? new Date(order.createdAt).toLocaleString("en-PK") : ""}</p></div></header><h3>Customer</h3><p>${order.customer}<br>${order.phone}<br>${order.address}</p><h3>Delivery</h3><p>${order.date} · ${order.area || ""}</p><table><thead><tr><th>Cake</th><th>Qty</th><th>Amount</th></tr></thead><tbody>${itemRows}</tbody></table><div class="totals">Subtotal: Rs. ${money(order.subtotal)}<br>Delivery: Rs. ${money(order.deliveryCharge)}<br><b>Total: Rs. ${money(order.total)}</b><br>Payment: ${order.paymentMethod} · ${order.paymentStatus}</div><p class="notice">Our team will contact you within 24 hours to confirm this order.</p><button onclick="print()">Print / save as PDF</button>`;
+    const win = window.open("", "_blank");
+    if (!win)
+      return tell(
+        "Pop-up blocked",
+        "Allow pop-ups to print or download the invoice.",
+      );
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+  };
+  const advance = async (id) => {
+    const current = orders.find((x) => x.id === id);
+    const status = statuses[Math.min(statuses.indexOf(current.status) + 1, 6)];
+    try {
+      if (current._id) await api.updateOrder(current._id, status);
+      setOrders((o) => o.map((x) => (x.id === id ? { ...x, status } : x)));
+      tell("Progress updated", id + " is now " + status + ".");
+    } catch (err) {
+      tell("Update failed", err.message);
+    }
+  };
+  const removeProduct = async (id) => {
+    if (!confirm("Delete this cake from the collection?")) return;
+    try {
+      if (String(id).length === 24) await api.deleteProduct(id);
+      setProducts((p) => p.filter((x) => x.id !== id));
+      tell("Cake deleted", "The live storefront collection has been updated.");
+    } catch (err) {
+      tell("Delete failed", err.message);
+    }
+  };
+  const saveProduct = async (e) => {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    try {
+      let images = editor.images || [];
+      let video = editor.video;
+      for (const file of data.getAll("media").filter((f) => f.size)) {
+        const uploaded = await api.upload(file);
+        if (uploaded.resourceType === "video") {
+          if (editor._id && video?.publicId)
+            await api.deleteMedia(editor._id, video.publicId, "video");
+          video = uploaded;
+        } else images = [...images, uploaded];
+      }
+      const sizes = [
+        ["1 pound", data.get("price1")],
+        ["2 pounds", data.get("price2")],
+        ["3 pounds", data.get("price3")],
+      ]
+        .filter((x) => Number(x[1]) > 0)
+        .map(([label, price]) => ({ label, price: Number(price) }));
+      const payload = {
+        name: data.get("name"),
+        category: data.get("category"),
+        basePrice: Number(data.get("price")),
+        color: data.get("color"),
+        emoji: data.get("emoji") || "🎂",
+        description: data.get("desc"),
+        images,
+        video,
+        sizes,
+        flavours: String(data.get("flavours") || "")
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean),
+        featured: data.get("featured") === "on",
+        bestseller: data.get("bestseller") === "on",
+        available: data.get("available") === "on",
+        allowMessage: data.get("allowMessage") === "on",
+        allowReference: data.get("allowReference") === "on",
+      };
+      const saved = editor._id
+        ? await api.updateProduct(editor._id, payload)
+        : await api.createProduct(payload);
+      const item = {
+        ...saved,
+        id: saved._id,
+        price: saved.basePrice,
+        desc: saved.description || "",
+        rating: editor.rating || "New",
+      };
+      setProducts((p) =>
+        editor._id
+          ? p.map((x) => (x.id === editor.id ? item : x))
+          : [item, ...p],
+      );
+      setEditor(null);
+      tell(
+        editor._id ? "Cake updated" : "Cake added",
+        "Changes are now live for every customer.",
+      );
+    } catch (err) {
+      tell("Save failed", err.message);
+    }
+  };
+  const removeMedia = async (media, type = "image") => {
+    try {
+      if (editor._id) await api.deleteMedia(editor._id, media.publicId, type);
+      setEditor((x) =>
+        type === "video"
+          ? { ...x, video: null }
+          : {
+              ...x,
+              images: x.images.filter((m) => m.publicId !== media.publicId),
+            },
+      );
+      setProducts((ps) =>
+        ps.map((p) =>
+          p.id === editor.id
+            ? type === "video"
+              ? { ...p, video: null }
+              : {
+                  ...p,
+                  images: p.images.filter((m) => m.publicId !== media.publicId),
+                }
+            : p,
+        ),
+      );
+      tell("Media removed", "The Cloudinary file was deleted.");
+    } catch (err) {
+      tell("Delete failed", err.message);
+    }
+  };
+  const moveMedia = (index, direction) =>
+    setEditor((x) => {
+      const images = [...(x.images || [])];
+      const target = index + direction;
+      if (target < 0 || target >= images.length) return x;
+      [images[index], images[target]] = [images[target], images[index]];
+      return { ...x, images };
+    });
+  const makePrimary = (index) =>
+    setEditor((x) => {
+      const images = [...(x.images || [])];
+      const [chosen] = images.splice(index, 1);
+      return { ...x, images: [chosen, ...images] };
+    });
+  const addCategory = async (e) => {
+    e.preventDefault();
+    const name = new FormData(e.currentTarget).get("category").trim();
+    try {
+      if (name && !categories.includes(name)) {
+        await api.createCategory({ name });
+        setCategories((x) => [...x, name]);
+      }
+      setCategoryEditor(false);
+      tell("Category saved", "The live filters have been updated.");
+    } catch (err) {
+      tell("Save failed", err.message);
+    }
+  };
+  if (login)
+    return (
+      <div className="login-page">
+        <motion.div
+          className="login-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Logo />
+          <span className="eyebrow">BAKERY ADMIN</span>
+          <h1>Welcome back</h1>
+          <p>Manage cakes, orders and deliveries in one place.</p>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                const result = await api.login(email, password);
+                localStorage.setItem("vc-token", result.token);
+                setOrders((await api.orders()).map(normalizeOrder));
+                setLogin(false);
+              } catch (err) {
+                setLoginError(err.message);
+              }
+            }}
+          >
+            <label>
+              Email address
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@bakery.com"
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+            </label>
+            <button className="primary wide">
+              Sign in <ArrowRight />
+            </button>
+          </form>
+          <small className="demo-note">
+            Use the administrator credentials configured in Render.
+          </small>
+          {loginError && (
+            <div className="session-message" role="alert">
+              {loginError}
+            </div>
+          )}
+          {sessionExpired && (
+            <div className="session-message">
+              Your session expired. Please sign in again.
+            </div>
+          )}
+          <button
+            className="forgot-link"
+            onClick={() => setPasswordMode("recover")}
+          >
+            Forgot password?
+          </button>
+          <button className="text-btn back" onClick={onStore}>
+            ← Return to store
+          </button>
+        </motion.div>
+        {passwordMode === "recover" && (
+          <motion.div
+            className="modal-wrap"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <motion.form
+              className="modal small-editor"
+              initial={{ scale: 0.94 }}
+              animate={{ scale: 1 }}
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const d = new FormData(e.currentTarget);
+                try {
+                  await api.recoverPassword(
+                    d.get("email"),
+                    d.get("recoveryCode"),
+                    d.get("newPassword"),
+                  );
+                  setPasswordMode(null);
+                  setSessionExpired(false);
+                  setLoginError(
+                    "Password reset. Sign in with your new password.",
+                  );
+                } catch (err) {
+                  setLoginError(err.message);
+                }
+              }}
+            >
+              <button
+                type="button"
+                className="close"
+                onClick={() => setPasswordMode(null)}
+              >
+                <X />
+              </button>
+              <span className="eyebrow">ACCOUNT RECOVERY</span>
+              <h2>Reset password</h2>
+              <p className="recovery-help">
+                Use the private recovery code configured in Render.
+              </p>
+              <label>
+                Admin email
+                <input name="email" type="email" required />
+              </label>
+              <label>
+                Recovery code
+                <input name="recoveryCode" type="password" required />
+              </label>
+              <label>
+                New password
+                <input
+                  name="newPassword"
+                  type="password"
+                  minLength="8"
+                  required
+                />
+              </label>
+              <button className="primary wide">Reset password</button>
+            </motion.form>
+          </motion.div>
+        )}
+      </div>
+    );
+  const filteredOrders = orders.filter((o) =>
+    (o.id + o.customer + o.cake)
+      .toLowerCase()
+      .includes(orderQuery.toLowerCase()),
+  );
+  return (
+    <div className="admin">
+      <Notice notice={notice} />
+      <aside>
+        <Logo />
+        <div className="admin-nav">
+          {[
+            "Overview",
+            "Orders",
+            "Analytics",
+            "Cakes",
+            "Categories",
+            "Settings",
+          ].map((x) => (
+            <button
+              key={x}
+              className={tab === x ? "active" : ""}
+              onClick={() => setTab(x)}
+            >
+              {x === "Overview" ? (
+                <LayoutDashboard />
+              ) : x === "Orders" ? (
+                <Package />
+              ) : x === "Cakes" ? (
+                <CakeSlice />
+              ) : (
+                <Sparkles />
+              )}
+              {x}
+              {x === "Orders" && (
+                <b>{orders.filter((o) => o.status === "New").length}</b>
+              )}
+            </button>
+          ))}
+        </div>
+        <button
+          className="logout"
+          onClick={() => {
+            localStorage.removeItem("vc-token");
+            setLogin(true);
+          }}
+        >
+          <LogOut /> Log out
+        </button>
+      </aside>
+      <section className="admin-main">
+        <div className="admin-top">
+          <div>
+            <span>
+              {new Date().toLocaleDateString("en-PK", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
+            <h1>{tab}</h1>
+          </div>
+          <button className="primary" onClick={onStore}>
+            View storefront <ArrowRight />
+          </button>
+        </div>
+        {tab === "Overview" && (
+          <>
+            <div className="stats">
+              <article>
+                <span>Active orders</span>
+                <strong>
+                  {
+                    orders.filter(
+                      (o) => !["Delivered", "Cancelled"].includes(o.status),
+                    ).length
+                  }
+                </strong>
+                <small className="up">Live preparation queue</small>
+              </article>
+              <article>
+                <span>New requests</span>
+                <strong>
+                  {orders.filter((o) => o.status === "New").length}
+                </strong>
+                <small>Needs your attention</small>
+              </article>
+              <article>
+                <span>In preparation</span>
+                <strong>
+                  {orders.filter((o) => o.status === "Preparing").length}
+                </strong>
+                <small>Kitchen workload</small>
+              </article>
+              <article>
+                <span>Order value</span>
+                <strong>
+                  Rs. {money(orders.reduce((s, o) => s + o.total, 0))}
+                </strong>
+                <small className="up">Current sample period</small>
+              </article>
+            </div>
+            <div className="dashboard-grid">
+              <div className="panel">
+                <div className="panel-title">
+                  <div>
+                    <h2>Upcoming orders</h2>
+                    <p>Keep every celebration on schedule.</p>
+                  </div>
+                  <button onClick={() => setTab("Orders")}>View all</button>
+                </div>
+                <OrderTable
+                  orders={orders.slice(0, 4)}
+                  advance={advance}
+                  onView={setOrderView}
+                />
+              </div>
+              <div className="panel deliveries">
+                <div className="panel-title">
+                  <div>
+                    <h2>Order progress</h2>
+                    <p>{orders.length} total orders</p>
+                  </div>
+                </div>
+                {["Confirmed", "Preparing", "Ready", "Delivered"].map(
+                  (label) => {
+                    const count = orders.filter(
+                      (o) => o.status === label,
+                    ).length;
+                    return (
+                      <div className="progress-row" key={label}>
+                        <div>
+                          <span>{label}</span>
+                          <b>{count}</b>
+                        </div>
+                        <div>
+                          <i
+                            style={{
+                              width: ((count / orders.length) * 100 || 0) + "%",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
+            </div>
+          </>
+        )}
+        {tab === "Orders" && (
+          <div className="panel full-panel">
+            <div className="panel-title">
+              <div>
+                <h2>All orders</h2>
+                <p>Open an order to review details or update progress.</p>
+              </div>
+              <div className="panel-actions">
+                <button className="export-btn" onClick={exportOrders}>
+                  Export CSV
+                </button>
+                <label className="search">
+                  <Search />
+                  <input
+                    value={orderQuery}
+                    onChange={(e) => setOrderQuery(e.target.value)}
+                    placeholder="Search orders"
+                  />
+                </label>
+              </div>
+            </div>
+            <OrderTable
+              orders={filteredOrders}
+              advance={advance}
+              onView={setOrderView}
+            />
+          </div>
+        )}
+        {tab === "Analytics" && (
+          <div className="analytics-layout">
+            <div className="panel revenue-panel">
+              <div className="panel-title">
+                <div>
+                  <h2>Sales overview</h2>
+                  <p>Order value across the current demo period.</p>
+                </div>
+                <strong>
+                  Rs. {money(orders.reduce((s, o) => s + o.total, 0))}
+                </strong>
+              </div>
+              <div className="bar-chart">
+                {orders
+                  .slice(0, 7)
+                  .reverse()
+                  .map((o, i) => {
+                    const max = Math.max(...orders.map((x) => x.total), 1);
+                    return (
+                      <div key={o.id}>
+                        <span
+                          style={{
+                            height: Math.max(12, (o.total / max) * 100) + "%",
+                          }}
+                          title={o.id + " · Rs. " + money(o.total)}
+                        />
+                        <small>{o.id.replace("VC-", "")}</small>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+            <div className="panel">
+              <div className="panel-title">
+                <div>
+                  <h2>Order status</h2>
+                  <p>Current workflow distribution.</p>
+                </div>
+              </div>
+              <div className="status-breakdown">
+                {statuses
+                  .filter((s) => orders.some((o) => o.status === s))
+                  .map((s) => {
+                    const count = orders.filter((o) => o.status === s).length;
+                    return (
+                      <div key={s}>
+                        <span
+                          className={
+                            "status " + s.toLowerCase().replaceAll(" ", "-")
+                          }
+                        >
+                          {s}
+                        </span>
+                        <div>
+                          <i
+                            style={{
+                              width: (count / orders.length) * 100 + "%",
+                            }}
+                          />
+                        </div>
+                        <b>{count}</b>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+            <div className="panel popular-panel">
+              <div className="panel-title">
+                <div>
+                  <h2>Popular cakes</h2>
+                  <p>Products appearing most often in orders.</p>
+                </div>
+              </div>
+              {cakeSales.map((p, i) => (
+                <div className="popular-row" key={p.name}>
+                  <b>{i + 1}</b>
+                  <span>{p.name}</span>
+                  <strong>{p.count} orders</strong>
+                </div>
+              ))}
+            </div>
+            <div className="panel insight-card">
+              <Sparkles />
+              <div>
+                <span>BUSINESS INSIGHT</span>
+                <h3>
+                  {orders.filter((o) => o.status === "New").length} orders need
+                  confirmation
+                </h3>
+                <p>
+                  Contact new customers first, then move confirmed orders into
+                  preparation.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        {tab === "Cakes" && (
+          <div className="panel full-panel">
+            <div className="panel-title">
+              <div>
+                <h2>Cake collection</h2>
+                <p>
+                  Add, edit or remove products and upload their Cloudinary
+                  media.
+                </p>
+              </div>
+              <button
+                className="primary"
+                onClick={() =>
+                  setEditor({
+                    color: "#f8a7b8",
+                    emoji: "🎂",
+                    category: categories[1],
+                  })
+                }
+              >
+                <Plus /> Add cake
+              </button>
+            </div>
+            {products.length ? (
+              <div className="admin-products">
+                {products.map((p) => (
+                  <article key={p.id}>
+                    <ProductArt product={p} />
+                    <div>
+                      <span>{p.category}</span>
+                      <h3>{p.name}</h3>
+                      <strong>Rs. {money(p.price)}</strong>
+                    </div>
+                    <div className="row-actions">
+                      <button
+                        title="Edit cake media"
+                        onClick={() => setEditor(p)}
+                      >
+                        <Upload />
+                      </button>
+                      <button onClick={() => setEditor(p)}>
+                        <Pencil />
+                      </button>
+                      <button
+                        className="danger"
+                        onClick={() => removeProduct(p.id)}
+                      >
+                        <Trash2 />
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <CakeSlice />
+                <h3>No cakes yet</h3>
+                <p>Add your first cake to show it in the storefront.</p>
+              </div>
+            )}
+          </div>
+        )}
+        {tab === "Categories" && (
+          <div className="panel full-panel">
+            <div className="panel-title">
+              <div>
+                <h2>Categories</h2>
+                <p>Organize how customers discover cakes.</p>
+              </div>
+              <button
+                className="primary"
+                onClick={() => setCategoryEditor(true)}
+              >
+                <Plus /> Add category
+              </button>
+            </div>
+            <div className="category-admin">
+              {categories.slice(1).map((x, i) => (
+                <div key={x}>
+                  <span
+                    style={{
+                      background: [
+                        "#f8a7b8",
+                        "#e98493",
+                        "#d8a9d8",
+                        "#b8a1cf",
+                        "#f2bf91",
+                      ][i % 5],
+                    }}
+                  >
+                    {["🎈", "💞", "💍", "🧸", "✨"][i % 5]}
+                  </span>
+                  <div>
+                    <strong>{x}</strong>
+                    <small>
+                      {products.filter((p) => p.category === x).length} products
+                    </small>
+                  </div>
+                  <button
+                    className="danger"
+                    onClick={async () => {
+                      if (products.some((p) => p.category === x))
+                        return tell(
+                          "Category in use",
+                          "Move its cakes before deleting this category.",
+                        );
+                      try {
+                        await api.deleteCategory(encodeURIComponent(x));
+                        setCategories((c) => c.filter((y) => y !== x));
+                        tell(
+                          "Category deleted",
+                          "The live storefront filters were updated.",
+                        );
+                      } catch (err) {
+                        tell("Delete failed", err.message);
+                      }
+                    }}
+                  >
+                    <Trash2 />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {tab === "Settings" && (
+          <div className="settings-grid">
+            <form
+              className="panel settings-panel"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const d = new FormData(e.currentTarget);
+                const next = {
+                  phone: d.get("phone"),
+                  whatsapp: d.get("whatsapp"),
+                  instagram: d.get("instagram"),
+                  leadTime: Number(d.get("leadTime")),
+                  ordersOpen: d.get("ordersOpen") === "on",
+                };
+                try {
+                  const saved = await api.updateSettings(next);
+                  setSettings((s) => ({ ...s, ...saved }));
+                  tell(
+                    "Settings saved",
+                    "The live storefront rules were updated.",
+                  );
+                } catch (err) {
+                  tell("Save failed", err.message);
+                }
+              }}
+            >
+              <div className="panel-title">
+                <div>
+                  <h2>Store settings</h2>
+                  <p>
+                    Manage ordering availability and customer contact details.
+                  </p>
+                </div>
+              </div>
+              <div className="form-grid">
+                <label>
+                  Public phone
+                  <input name="phone" defaultValue={settings.phone} />
+                </label>
+                <label>
+                  WhatsApp number
+                  <input name="whatsapp" defaultValue={settings.whatsapp} />
+                </label>
+                <label>
+                  Instagram username
+                  <input name="instagram" defaultValue={settings.instagram} />
+                </label>
+                <label>
+                  Minimum lead time
+                  <input
+                    name="leadTime"
+                    type="number"
+                    min="0"
+                    defaultValue={settings.leadTime}
+                  />
+                </label>
+                <label className="full toggle-row">
+                  <input
+                    name="ordersOpen"
+                    type="checkbox"
+                    defaultChecked={settings.ordersOpen}
+                  />
+                  <span>
+                    <strong>Accept new orders</strong>
+                    <small>Turn this off to temporarily pause checkout.</small>
+                  </span>
+                </label>
+              </div>
+              <div className="settings-actions">
+                <button className="primary">Save settings</button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setPasswordMode("change")}
+                >
+                  Change password
+                </button>
+              </div>
+            </form>
+            <div className="panel settings-panel">
+              <div className="panel-title">
+                <div>
+                  <h2>Delivery areas</h2>
+                  <p>Charges are automatically added during checkout.</p>
+                </div>
+                <button className="primary" onClick={() => setAreaEditor(true)}>
+                  <Plus /> Add area
+                </button>
+              </div>
+              <div className="area-list">
+                {areas.map((a) => (
+                  <div key={a.id}>
+                    <span>
+                      <strong>{a.name}</strong>
+                      <small>Delivery charge</small>
+                    </span>
+                    <b>Rs. {money(a.charge)}</b>
+                    <button
+                      className="danger"
+                      onClick={async () => {
+                        try {
+                          if (String(a.id).length === 24)
+                            await api.deleteArea(a.id);
+                          setAreas((x) => x.filter((y) => y.id !== a.id));
+                          tell(
+                            "Area removed",
+                            "Live checkout options were updated.",
+                          );
+                        } catch (err) {
+                          tell("Delete failed", err.message);
+                        }
+                      }}
+                    >
+                      <Trash2 />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+      <AnimatePresence>
+        {editor && (
+          <motion.div
+            className="modal-wrap"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.form
+              className="modal admin-editor"
+              initial={{ y: 45, scale: 0.96 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ opacity: 0 }}
+              onSubmit={saveProduct}
+            >
+              <button
+                type="button"
+                className="close"
+                onClick={() => setEditor(null)}
+              >
+                <X />
+              </button>
+              <span className="eyebrow">
+                {editor.id ? "EDIT CAKE" : "NEW CAKE"}
+              </span>
+              <h2>{editor.id ? "Update cake" : "Add to collection"}</h2>
+              <div className="form-grid">
+                <label>
+                  Name
+                  <input name="name" required defaultValue={editor.name} />
+                </label>
+                <label>
+                  Category
+                  <select name="category" defaultValue={editor.category}>
+                    {categories.slice(1).map((x) => (
+                      <option key={x}>{x}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Starting price
+                  <input
+                    name="price"
+                    required
+                    min="1"
+                    type="number"
+                    defaultValue={editor.price}
+                  />
+                </label>
+                <label>
+                  Card colour
+                  <input
+                    name="color"
+                    type="color"
+                    defaultValue={editor.color}
+                  />
+                </label>
+                <label>
+                  Display icon
+                  <input name="emoji" defaultValue={editor.emoji} />
+                </label>
+                <label className="full">
+                  Description
+                  <textarea name="desc" required defaultValue={editor.desc} />
+                </label>
+                <label>
+                  1 pound price
+                  <input
+                    name="price1"
+                    type="number"
+                    min="0"
+                    defaultValue={
+                      editor.sizes?.find((s) => s.label === "1 pound")?.price ||
+                      editor.price
+                    }
+                  />
+                </label>
+                <label>
+                  2 pounds price
+                  <input
+                    name="price2"
+                    type="number"
+                    min="0"
+                    defaultValue={
+                      editor.sizes?.find((s) => s.label === "2 pounds")?.price
+                    }
+                  />
+                </label>
+                <label>
+                  3 pounds price
+                  <input
+                    name="price3"
+                    type="number"
+                    min="0"
+                    defaultValue={
+                      editor.sizes?.find((s) => s.label === "3 pounds")?.price
+                    }
+                  />
+                </label>
+                <label className="full">
+                  Flavours, separated by commas
+                  <input
+                    name="flavours"
+                    defaultValue={
+                      editor.flavours?.join(", ") ||
+                      "Vanilla, Chocolate, Red velvet"
+                    }
+                  />
+                </label>
+                <div className="full product-switches">
+                  <label>
+                    <input
+                      name="available"
+                      type="checkbox"
+                      defaultChecked={editor.available !== false}
+                    />{" "}
+                    Available
+                  </label>
+                  <label>
+                    <input
+                      name="featured"
+                      type="checkbox"
+                      defaultChecked={editor.featured}
+                    />{" "}
+                    Featured
+                  </label>
+                  <label>
+                    <input
+                      name="bestseller"
+                      type="checkbox"
+                      defaultChecked={editor.bestseller}
+                    />{" "}
+                    Bestseller
+                  </label>
+                  <label>
+                    <input
+                      name="allowMessage"
+                      type="checkbox"
+                      defaultChecked={editor.allowMessage !== false}
+                    />{" "}
+                    Cake message
+                  </label>
+                  <label>
+                    <input
+                      name="allowReference"
+                      type="checkbox"
+                      defaultChecked={
+                        editor.allowReference || editor.category === "Custom"
+                      }
+                    />{" "}
+                    Reference image
+                  </label>
+                </div>
+              </div>
+              <label className="upload-zone">
+                <Upload />
+                <div>
+                  <strong>Upload cake photos or a short video</strong>
+                  <small>
+                    Select multiple files. Each file can be up to 25 MB.
+                  </small>
+                </div>
+                <input
+                  name="media"
+                  multiple
+                  type="file"
+                  accept="image/*,video/*"
+                />
+              </label>
+              {(editor.images?.length || editor.video) && (
+                <div className="media-manager">
+                  {editor.images?.map((m, i) => (
+                    <div
+                      key={m.publicId || i}
+                      className={i === 0 ? "primary-media" : ""}
+                    >
+                      <img src={m.url} alt="Cake media" />
+                      <span>{i === 0 ? "Primary" : "Image " + (i + 1)}</span>
+                      <div>
+                        <button
+                          type="button"
+                          title="Move left"
+                          onClick={() => moveMedia(i, -1)}
+                        >
+                          ←
+                        </button>
+                        <button
+                          type="button"
+                          title="Make primary"
+                          onClick={() => makePrimary(i)}
+                        >
+                          <Heart />
+                        </button>
+                        <button
+                          type="button"
+                          title="Move right"
+                          onClick={() => moveMedia(i, 1)}
+                        >
+                          →
+                        </button>
+                        <button
+                          type="button"
+                          className="danger"
+                          title="Delete"
+                          onClick={() => removeMedia(m)}
+                        >
+                          <Trash2 />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {editor.video && (
+                    <div className="video-manager">
+                      <video src={editor.video.url} controls />
+                      <span>Product video</span>
+                      <button
+                        type="button"
+                        className="danger"
+                        onClick={() => removeMedia(editor.video, "video")}
+                      >
+                        <Trash2 /> Delete video
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              <button className="primary wide">Save cake</button>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {passwordMode === "change" && (
+          <motion.div
+            className="modal-wrap"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <motion.form
+              className="modal small-editor"
+              initial={{ scale: 0.94 }}
+              animate={{ scale: 1 }}
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const d = new FormData(e.currentTarget);
+                if (d.get("newPassword") !== d.get("confirmPassword"))
+                  return tell(
+                    "Passwords do not match",
+                    "Enter the same new password twice.",
+                  );
+                try {
+                  await api.changePassword(
+                    d.get("currentPassword"),
+                    d.get("newPassword"),
+                  );
+                  setPasswordMode(null);
+                  tell(
+                    "Password changed",
+                    "Use your new password next time you sign in.",
+                  );
+                } catch (err) {
+                  tell("Change failed", err.message);
+                }
+              }}
+            >
+              <button
+                type="button"
+                className="close"
+                onClick={() => setPasswordMode(null)}
+              >
+                <X />
+              </button>
+              <span className="eyebrow">ACCOUNT SECURITY</span>
+              <h2>Change password</h2>
+              <label>
+                Current password
+                <input name="currentPassword" type="password" required />
+              </label>
+              <label>
+                New password
+                <input
+                  name="newPassword"
+                  type="password"
+                  minLength="8"
+                  required
+                />
+              </label>
+              <label>
+                Confirm new password
+                <input
+                  name="confirmPassword"
+                  type="password"
+                  minLength="8"
+                  required
+                />
+              </label>
+              <button className="primary wide">Update password</button>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {passwordMode === "recover" && (
+          <motion.div
+            className="modal-wrap"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <motion.form
+              className="modal small-editor"
+              initial={{ scale: 0.94 }}
+              animate={{ scale: 1 }}
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const d = new FormData(e.currentTarget);
+                try {
+                  await api.recoverPassword(
+                    d.get("email"),
+                    d.get("recoveryCode"),
+                    d.get("newPassword"),
+                  );
+                  setPasswordMode(null);
+                  tell(
+                    "Password reset",
+                    "You can now sign in with the new password.",
+                  );
+                } catch (err) {
+                  tell("Recovery failed", err.message);
+                }
+              }}
+            >
+              <button
+                type="button"
+                className="close"
+                onClick={() => setPasswordMode(null)}
+              >
+                <X />
+              </button>
+              <span className="eyebrow">ACCOUNT RECOVERY</span>
+              <h2>Reset password</h2>
+              <p className="recovery-help">
+                Use the private recovery code configured in Render.
+              </p>
+              <label>
+                Admin email
+                <input name="email" type="email" required />
+              </label>
+              <label>
+                Recovery code
+                <input name="recoveryCode" type="password" required />
+              </label>
+              <label>
+                New password
+                <input
+                  name="newPassword"
+                  type="password"
+                  minLength="8"
+                  required
+                />
+              </label>
+              <button className="primary wide">Reset password</button>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {areaEditor && (
+          <motion.div
+            className="modal-wrap"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <motion.form
+              className="modal small-editor"
+              initial={{ scale: 0.94 }}
+              animate={{ scale: 1 }}
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const d = new FormData(e.currentTarget);
+                try {
+                  const saved = await api.createArea({
+                    name: d.get("area"),
+                    charge: Number(d.get("charge")),
+                  });
+                  setAreas((x) => [...x, { ...saved, id: saved._id }]);
+                  setAreaEditor(false);
+                  tell(
+                    "Delivery area added",
+                    "Customers can now select it in live checkout.",
+                  );
+                } catch (err) {
+                  tell("Save failed", err.message);
+                }
+              }}
+            >
+              <button
+                type="button"
+                className="close"
+                onClick={() => setAreaEditor(false)}
+              >
+                <X />
+              </button>
+              <span className="eyebrow">DELIVERY AREA</span>
+              <h2>Add an area</h2>
+              <label>
+                Area name
+                <input
+                  name="area"
+                  required
+                  placeholder="e.g. North Nazimabad"
+                />
+              </label>
+              <label>
+                Delivery charge
+                <input
+                  name="charge"
+                  required
+                  min="0"
+                  type="number"
+                  placeholder="300"
+                />
+              </label>
+              <button className="primary wide">Save area</button>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {categoryEditor && (
+          <motion.div
+            className="modal-wrap"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <motion.form
+              className="modal small-editor"
+              initial={{ scale: 0.94 }}
+              animate={{ scale: 1 }}
+              onSubmit={addCategory}
+            >
+              <button
+                type="button"
+                className="close"
+                onClick={() => setCategoryEditor(false)}
+              >
+                <X />
+              </button>
+              <span className="eyebrow">NEW CATEGORY</span>
+              <h2>Organize your cakes</h2>
+              <label>
+                Category name
+                <input name="category" required placeholder="e.g. Graduation" />
+              </label>
+              <button className="primary wide">Add category</button>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {orderView && (
+          <motion.div
+            className="modal-wrap"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            onMouseDown={() => setOrderView(null)}
+          >
+            <motion.div
+              className="modal order-detail"
+              initial={{ x: 60, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <button className="close" onClick={() => setOrderView(null)}>
+                <X />
+              </button>
+              <span className="eyebrow">ORDER {orderView.id}</span>
+              <h2>{orderView.cake}</h2>
+              <div className="detail-grid">
+                <div>
+                  <small>Customer</small>
+                  <strong>{orderView.customer}</strong>
+                </div>
+                <div>
+                  <small>WhatsApp</small>
+                  <strong>{orderView.phone || "0300 1234567"}</strong>
+                </div>
+                <div>
+                  <small>Delivery</small>
+                  <strong>{orderView.date}</strong>
+                </div>
+                <div>
+                  <small>Subtotal</small>
+                  <strong>Rs. {money(orderView.subtotal)}</strong>
+                </div>
+                <div>
+                  <small>Delivery charge</small>
+                  <strong>Rs. {money(orderView.deliveryCharge)}</strong>
+                </div>
+                <div>
+                  <small>Total</small>
+                  <strong>Rs. {money(orderView.total)}</strong>
+                </div>
+                <div>
+                  <small>Payment method</small>
+                  <strong>{orderView.paymentMethod}</strong>
+                </div>
+                <div>
+                  <small>Payment status</small>
+                  <strong>{orderView.paymentStatus}</strong>
+                </div>
+              </div>
+              <div className="customer-note">
+                <strong>Order notes</strong>
+                {(orderView.items || []).map((item, i) => (
+                  <p key={i}>
+                    {item.quantity || 1} × {item.name} ·{" "}
+                    {item.size || "Size not set"} ·{" "}
+                    {item.flavour || "Flavour not set"}
+                    {item.message ? ` · “${item.message}”` : ""}
+                  </p>
+                ))}
+                <p>
+                  {orderView.address ||
+                    "Delivery address will appear after confirmation."}
+                </p>
+                {orderView.note && <p>{orderView.note}</p>}
+              </div>
+              {(orderView.items || []).some((i) => i.reference?.url) && (
+                <div className="reference-gallery">
+                  <strong>Customer reference images</strong>
+                  <div>
+                    {orderView.items
+                      .filter((i) => i.reference?.url)
+                      .map((item, i) => (
+                        <a
+                          href={item.reference.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          key={i}
+                        >
+                          <img
+                            src={item.reference.url}
+                            alt={`Reference for ${item.name}`}
+                          />
+                          <span>{item.name}</span>
+                        </a>
+                      ))}
+                  </div>
+                </div>
+              )}
+              <div className="order-controls">
+                <label>
+                  Order progress
+                  <select
+                    value={orderView.status}
+                    onChange={async (e) => {
+                      const status = e.target.value;
+                      if (
+                        status === "Cancelled" &&
+                        !confirm(
+                          "Cancel this order? The customer order will be marked as cancelled.",
+                        )
+                      )
+                        return;
+                      try {
+                        const saved = orderView._id
+                          ? await api.updateOrder(orderView._id, status)
+                          : null;
+                        const timeline = saved?.timeline || [
+                          ...(orderView.timeline || []),
+                          { status, at: new Date().toISOString() },
+                        ];
+                        setOrders((o) =>
+                          o.map((x) =>
+                            x.id === orderView.id
+                              ? { ...x, status, timeline }
+                              : x,
+                          ),
+                        );
+                        setOrderView({ ...orderView, status, timeline });
+                        tell(
+                          "Progress updated",
+                          "Order " + orderView.id + " is now " + status + ".",
+                        );
+                      } catch (err) {
+                        tell("Update failed", err.message);
+                      }
+                    }}
+                  >
+                    {statuses.map((x) => (
+                      <option key={x}>{x}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Payment status
+                  <select
+                    value={orderView.paymentStatus}
+                    onChange={async (e) => {
+                      const paymentStatus = e.target.value;
+                      try {
+                        const saved = orderView._id
+                          ? await api.updatePayment(
+                              orderView._id,
+                              paymentStatus,
+                            )
+                          : null;
+                        const timeline = saved?.timeline || orderView.timeline;
+                        setOrders((os) =>
+                          os.map((o) =>
+                            o.id === orderView.id
+                              ? { ...o, paymentStatus, timeline }
+                              : o,
+                          ),
+                        );
+                        setOrderView({ ...orderView, paymentStatus, timeline });
+                        tell(
+                          "Payment updated",
+                          `${orderView.id} is ${paymentStatus.toLowerCase()}.`,
+                        );
+                      } catch (err) {
+                        tell("Update failed", err.message);
+                      }
+                    }}
+                  >
+                    {["Pending", "Collected", "Refunded"].map((x) => (
+                      <option key={x}>{x}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="order-timeline">
+                <strong>Complete timeline</strong>
+                {(orderView.timeline || []).map((event, i) => (
+                  <div key={i}>
+                    <i />
+                    <span>
+                      <b>{event.status}</b>
+                      <small>
+                        {event.at
+                          ? new Date(event.at).toLocaleString("en-PK")
+                          : "Recorded"}
+                      </small>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="order-actions">
+                <button
+                  className="secondary"
+                  onClick={() => printInvoice(orderView)}
+                >
+                  <Download /> Print / download invoice
+                </button>
+                {["Delivered", "Cancelled"].includes(orderView.status) &&
+                  !orderView.archived && (
+                    <button
+                      className="secondary"
+                      onClick={async () => {
+                        if (!confirm("Archive this completed order?")) return;
+                        try {
+                          await api.archiveOrder(orderView._id);
+                          setOrders((os) =>
+                            os.filter((o) => o.id !== orderView.id),
+                          );
+                          setOrderView(null);
+                          tell(
+                            "Order archived",
+                            `${orderView.id} was removed from active orders.`,
+                          );
+                        } catch (err) {
+                          tell("Archive failed", err.message);
+                        }
+                      }}
+                    >
+                      <Archive /> Archive
+                    </button>
+                  )}
+                {orderView.archived && (
+                  <button
+                    className="danger-action"
+                    onClick={async () => {
+                      if (
+                        !confirm(
+                          "Permanently delete this archived order? This cannot be undone.",
+                        )
+                      )
+                        return;
+                      try {
+                        await api.deleteOrder(orderView._id);
+                        setOrders((os) =>
+                          os.filter((o) => o.id !== orderView.id),
+                        );
+                        setOrderView(null);
+                        tell(
+                          "Order deleted",
+                          `${orderView.id} was permanently deleted.`,
+                        );
+                      } catch (err) {
+                        tell("Delete failed", err.message);
+                      }
+                    }}
+                  >
+                    <Trash2 /> Delete
+                  </button>
+                )}
+              </div>
+              <button
+                className="primary wide"
+                onClick={() => setOrderView(null)}
+              >
+                Save and close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+function OrderTable({ orders, advance, onView }) {
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Customer</th>
+            <th>Cake</th>
+            <th>Delivery</th>
+            <th>Total</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((o) => (
+            <tr key={o.id} onClick={() => onView(o)}>
+              <td>
+                <strong>{o.id}</strong>
+              </td>
+              <td>{o.customer}</td>
+              <td>{o.cake}</td>
+              <td>{o.date}</td>
+              <td>Rs. {money(o.total)}</td>
+              <td>
+                <span
+                  className={`payment-status ${o.paymentStatus?.toLowerCase()}`}
+                >
+                  {o.paymentStatus}
+                </span>
+              </td>
+              <td>
+                <span
+                  className={
+                    "status " + o.status.toLowerCase().replaceAll(" ", "-")
+                  }
+                >
+                  {o.status}
+                </span>
+              </td>
+              <td>
+                <button
+                  className="next"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    advance(o.id);
+                  }}
+                  title="Move to next stage"
+                >
+                  <ChevronRight />
+                </button>
+              </td>
+            </tr>
+          ))}
+          {!orders.length && (
+            <tr>
+              <td colSpan="8">
+                <div className="table-empty">
+                  <Package />
+                  <strong>No orders here</strong>
+                  <span>New customer orders will appear automatically.</span>
+                </div>
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+export default function App() {
+  const [admin, setAdmin] = useState(location.hash === "#admin");
+  const [products, setProducts] = useState(
+    () =>
+      JSON.parse(localStorage.getItem("vc-products") || "null") || seedProducts,
+  );
+  const [categories, setCategories] = useState(
+    () =>
+      JSON.parse(localStorage.getItem("vc-categories") || "null") ||
+      seedCategories,
+  );
+  const [orders, setOrders] = useState(
+    () =>
+      JSON.parse(localStorage.getItem("vc-orders") || "null") || initialOrders,
+  );
+  const [settings, setSettings] = useState(
+    () =>
+      JSON.parse(localStorage.getItem("vc-settings") || "null") ||
+      initialSettings,
+  );
+  const [areas, setAreas] = useState(
+    () =>
+      JSON.parse(localStorage.getItem("vc-areas") || "null") || initialAreas,
+  );
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [remoteProducts, remoteCategories, store] = await Promise.all([
+          api.products(),
+          api.categories(),
+          api.store(),
+        ]);
+        if (remoteProducts.length)
+          setProducts(
+            remoteProducts.map((p) => ({
+              ...p,
+              id: p._id,
+              price: p.basePrice,
+              desc: p.description || "",
+              emoji: p.emoji || "🎂",
+              color: p.color || "#f8a7b8",
+              rating: "New",
+            })),
+          );
+        if (remoteCategories.length)
+          setCategories(["All cakes", ...remoteCategories.map((x) => x.name)]);
+        if (store.settings) setSettings((s) => ({ ...s, ...store.settings }));
+        if (store.areas?.length)
+          setAreas(store.areas.map((a) => ({ ...a, id: a._id })));
+        if (localStorage.getItem("vc-token"))
+          setOrders((await api.orders()).map(normalizeOrder));
+      } catch (err) {
+        console.warn("Using saved storefront data:", err.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+  useEffect(
+    () => localStorage.setItem("vc-products", JSON.stringify(products)),
+    [products],
+  );
+  useEffect(
+    () => localStorage.setItem("vc-categories", JSON.stringify(categories)),
+    [categories],
+  );
+  useEffect(
+    () => localStorage.setItem("vc-orders", JSON.stringify(orders)),
+    [orders],
+  );
+  useEffect(
+    () => localStorage.setItem("vc-settings", JSON.stringify(settings)),
+    [settings],
+  );
+  useEffect(
+    () => localStorage.setItem("vc-areas", JSON.stringify(areas)),
+    [areas],
+  );
+  if (location.pathname !== "/")
+    return (
+      <div className="not-found">
+        <Logo />
+        <span>404</span>
+        <h1>This page missed the party.</h1>
+        <p>
+          The cake you are looking for is not here, but plenty of sweet choices
+          are.
+        </p>
+        <a className="primary" href="/">
+          Return to the cake shop
+        </a>
+      </div>
+    );
+  return admin ? (
+    <Admin
+      products={products}
+      setProducts={setProducts}
+      categories={categories}
+      setCategories={setCategories}
+      orders={orders}
+      setOrders={setOrders}
+      settings={settings}
+      setSettings={setSettings}
+      areas={areas}
+      setAreas={setAreas}
+      onStore={() => {
+        setAdmin(false);
+        location.hash = "";
+      }}
+    />
+  ) : (
+    <Store
+      products={products}
+      categories={categories}
+      orders={orders}
+      setOrders={setOrders}
+      settings={settings}
+      areas={areas}
+      loading={loading}
+      onAdmin={() => {
+        setAdmin(true);
+        location.hash = "admin";
+      }}
+    />
+  );
+}

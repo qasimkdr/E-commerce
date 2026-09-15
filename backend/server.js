@@ -1,42 +1,609 @@
-import 'dotenv/config';import 'express-async-errors';import express from 'express';import cors from 'cors';import mongoose from 'mongoose';import jwt from 'jsonwebtoken';import bcrypt from 'bcryptjs';import multer from 'multer';import streamifier from 'streamifier';import {v2 as cloudinary} from 'cloudinary';
-const app=express();const allowedOrigins=process.env.CLIENT_URL==='*'?true:(process.env.CLIENT_URL?.split(',').map(x=>x.trim())||true);app.use(cors({origin:allowedOrigins,credentials:true}));app.use(express.json({limit:'2mb'}));
-cloudinary.config({cloud_name:process.env.CLOUDINARY_CLOUD_NAME,api_key:process.env.CLOUDINARY_API_KEY,api_secret:process.env.CLOUDINARY_API_SECRET});
-const mediaSchema=new mongoose.Schema({url:String,publicId:String,resourceType:{type:String,default:'image'}},{_id:false});
-const Product=mongoose.model('Product',new mongoose.Schema({name:{type:String,required:true},slug:{type:String,unique:true},description:String,color:String,emoji:String,category:{type:String,required:true},basePrice:{type:Number,required:true},images:[mediaSchema],video:mediaSchema,sizes:[{label:String,price:Number}],flavours:[String],featured:{type:Boolean,default:false},bestseller:{type:Boolean,default:false},available:{type:Boolean,default:true},allowMessage:{type:Boolean,default:true},allowReference:{type:Boolean,default:false}},{timestamps:true}));
-const Category=mongoose.model('Category',new mongoose.Schema({name:{type:String,required:true,unique:true},slug:{type:String,required:true,unique:true},active:{type:Boolean,default:true},sortOrder:{type:Number,default:0}},{timestamps:true}));
-const orderStatuses=['New','Contacted','Confirmed','Preparing','Ready','Out for delivery','Delivered','Cancelled'];
-const Order=mongoose.model('Order',new mongoose.Schema({orderNumber:{type:String,unique:true},customer:{name:{type:String,required:true},phone:{type:String,required:true},address:{type:String,required:true}},items:[{product:{type:mongoose.Schema.Types.ObjectId,ref:'Product'},name:String,size:String,flavour:String,message:String,quantity:{type:Number,default:1},unitPrice:Number,reference:mediaSchema}],delivery:{date:{type:Date,required:true},time:String,area:String,charge:{type:Number,default:0}},instructions:String,subtotal:Number,total:Number,paymentMethod:{type:String,default:'Cash on delivery'},paymentStatus:{type:String,default:'Pending'},status:{type:String,enum:orderStatuses,default:'New'},timeline:[{status:String,at:{type:Date,default:Date.now}}]},{timestamps:true}));
-const Settings=mongoose.model('Settings',new mongoose.Schema({key:{type:String,default:'store',unique:true},phone:String,whatsapp:String,instagram:String,leadTime:{type:Number,default:1},ordersOpen:{type:Boolean,default:true}},{timestamps:true}));
-const DeliveryArea=mongoose.model('DeliveryArea',new mongoose.Schema({name:{type:String,required:true,unique:true},charge:{type:Number,required:true,min:0},active:{type:Boolean,default:true}},{timestamps:true}));
-const Admin=mongoose.model('Admin',new mongoose.Schema({name:String,email:{type:String,unique:true,lowercase:true},passwordHash:String},{timestamps:true}));
-const auth=async(req,res,next)=>{try{const token=req.headers.authorization?.replace('Bearer ','');if(!token)return res.status(401).json({message:'Authentication required'});req.admin=jwt.verify(token,process.env.JWT_SECRET);next()}catch{return res.status(401).json({message:'Invalid or expired session'})}};
-const slug=s=>s.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-app.get('/api/health',(req,res)=>res.json({ok:true,name:'Velvet Crumb API',database:mongoose.connection.readyState===1?'connected':'disconnected'}));
-app.get('/api/store',async(req,res)=>{const [settings,areas]=await Promise.all([Settings.findOne({key:'store'}),DeliveryArea.find({active:true}).sort({name:1})]);res.json({settings:settings||{phone:'',whatsapp:'',instagram:'',leadTime:1,ordersOpen:true},areas})});
-app.put('/api/store/settings',auth,async(req,res)=>res.json(await Settings.findOneAndUpdate({key:'store'},{$set:req.body},{new:true,upsert:true,runValidators:true})));
-app.post('/api/store/areas',auth,async(req,res)=>res.status(201).json(await DeliveryArea.create(req.body)));
-app.put('/api/store/areas/:id',auth,async(req,res)=>res.json(await DeliveryArea.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true})));
-app.delete('/api/store/areas/:id',auth,async(req,res)=>{await DeliveryArea.findByIdAndDelete(req.params.id);res.json({success:true})});
-app.post('/api/auth/change-password',auth,async(req,res)=>{const admin=await Admin.findById(req.admin.id);if(!admin||!await bcrypt.compare(req.body.currentPassword||'',admin.passwordHash))return res.status(400).json({message:'Current password is incorrect'});if(String(req.body.newPassword||'').length<8)return res.status(400).json({message:'New password must contain at least 8 characters'});admin.passwordHash=await bcrypt.hash(req.body.newPassword,12);await admin.save();res.json({success:true})});
-app.post('/api/auth/recover',async(req,res)=>{if(!process.env.ADMIN_RECOVERY_CODE)return res.status(503).json({message:'Password recovery is not configured'});const admin=await Admin.findOne({email:String(req.body.email||'').toLowerCase()});if(!admin||req.body.recoveryCode!==process.env.ADMIN_RECOVERY_CODE)return res.status(400).json({message:'Email or recovery code is incorrect'});if(String(req.body.newPassword||'').length<8)return res.status(400).json({message:'New password must contain at least 8 characters'});admin.passwordHash=await bcrypt.hash(req.body.newPassword,12);await admin.save();res.json({success:true})});
-app.post('/api/auth/login',async(req,res)=>{const admin=await Admin.findOne({email:req.body.email.toLowerCase()});if(!admin||!await bcrypt.compare(req.body.password,admin.passwordHash))return res.status(401).json({message:'Incorrect email or password'});const token=jwt.sign({id:admin._id,email:admin.email},process.env.JWT_SECRET,{expiresIn:'3d'});res.json({token,admin:{name:admin.name,email:admin.email}})});
-app.get('/api/products',async(req,res)=>{const filter={};if(req.query.category)filter.category=req.query.category;if(req.query.admin!=='true')filter.available=true;res.json(await Product.find(filter).sort({featured:-1,createdAt:-1}))});
-app.post('/api/products',auth,async(req,res)=>res.status(201).json(await Product.create({...req.body,slug:req.body.slug||slug(req.body.name)})));
-app.put('/api/products/:id',auth,async(req,res)=>res.json(await Product.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true})));
-app.patch('/api/products/:id/media-order',auth,async(req,res)=>{const product=await Product.findById(req.params.id);if(!product)return res.status(404).json({message:'Cake not found'});const order=Array.isArray(req.body.publicIds)?req.body.publicIds:[];product.images.sort((a,b)=>order.indexOf(a.publicId)-order.indexOf(b.publicId));await product.save();res.json(product)});
-app.delete('/api/products/:id/media',auth,async(req,res)=>{const product=await Product.findById(req.params.id);if(!product)return res.status(404).json({message:'Cake not found'});const {publicId,resourceType='image'}=req.body;if(!publicId)return res.status(400).json({message:'Media identifier is required'});await cloudinary.uploader.destroy(publicId,{resource_type:resourceType});if(product.video?.publicId===publicId)product.video=undefined;else product.images=product.images.filter(m=>m.publicId!==publicId);await product.save();res.json(product)});
-app.delete('/api/products/:id',auth,async(req,res)=>{const p=await Product.findByIdAndDelete(req.params.id);for(const m of [...(p?.images||[]),p?.video].filter(Boolean))if(m.publicId)await cloudinary.uploader.destroy(m.publicId,{resource_type:m.resourceType||'image'});res.json({success:true})});
-app.get('/api/categories',async(req,res)=>res.json(await Category.find({active:true}).sort({sortOrder:1})));
-app.post('/api/categories',auth,async(req,res)=>res.status(201).json(await Category.create({...req.body,slug:req.body.slug||slug(req.body.name)})));
-app.put('/api/categories/:id',auth,async(req,res)=>res.json(await Category.findByIdAndUpdate(req.params.id,req.body,{new:true})));
-app.delete('/api/categories/:id',auth,async(req,res)=>{if(mongoose.isValidObjectId(req.params.id))await Category.findByIdAndDelete(req.params.id);else await Category.findOneAndDelete({name:req.params.id});res.json({success:true})});
-app.post('/api/orders',async(req,res)=>{const settings=await Settings.findOne({key:'store'});if(settings?.ordersOpen===false)return res.status(409).json({message:'Online orders are temporarily paused'});const {customer,items=[],delivery,instructions,paymentMethod}=req.body;if(!customer?.name||!/^0\d{10}$/.test(customer?.phone||'')||!customer?.address)return res.status(400).json({message:'Complete valid customer details'});if(!items.length||items.length>10)return res.status(400).json({message:'Your order must contain 1 to 10 cakes'});const area=await DeliveryArea.findOne({name:delivery?.area,active:true});if(!area)return res.status(400).json({message:'Select an available delivery area'});const deliveryDate=new Date(delivery?.date);const earliest=new Date();earliest.setHours(0,0,0,0);earliest.setDate(earliest.getDate()+Number(settings?.leadTime||0));if(Number.isNaN(deliveryDate.getTime())||deliveryDate<earliest)return res.status(400).json({message:'Choose a delivery date after the minimum preparation time'});const secured=[];for(const item of items){if(!mongoose.isValidObjectId(item.product))return res.status(400).json({message:'A selected cake is no longer available'});const product=await Product.findOne({_id:item.product,available:true});if(!product)return res.status(400).json({message:'A selected cake is no longer available'});const sizeOption=product.sizes?.find(s=>s.label===item.size);const multiplier=item.size==='2 pounds'?1.8:item.size==='3 pounds'?2.6:1;const unitPrice=sizeOption?.price||Math.round(product.basePrice*multiplier);secured.push({product:product._id,name:product.name,size:item.size,flavour:item.flavour,message:product.allowMessage!==false?String(item.message||'').slice(0,45):'',quantity:Math.max(1,Math.min(10,Number(item.quantity)||1)),unitPrice,reference:(product.allowReference||product.category==='Custom')?item.reference:undefined})}const subtotal=secured.reduce((sum,item)=>sum+item.unitPrice*item.quantity,0);const total=subtotal+area.charge;const orderNumber='VC-'+Date.now().toString().slice(-8);const order=await Order.create({orderNumber,customer:{name:String(customer.name).trim(),phone:customer.phone,address:String(customer.address).trim()},items:secured,delivery:{date:deliveryDate,time:String(delivery.time||''),area:area.name,charge:area.charge},instructions:String(instructions||'').slice(0,500),subtotal,total,paymentMethod:paymentMethod||'Cash on delivery',timeline:[{status:'New'}]});res.status(201).json(order)});
-app.get('/api/orders',auth,async(req,res)=>res.json(await Order.find().sort({createdAt:-1}).populate('items.product','name images')));
-app.get('/api/orders/track/:number',async(req,res)=>{const order=await Order.findOne({orderNumber:req.params.number.toUpperCase()}).select('orderNumber status delivery items.name total createdAt');if(!order)return res.status(404).json({message:'Order not found'});res.json(order)});
-app.get('/api/orders/:id',auth,async(req,res)=>res.json(await Order.findById(req.params.id).populate('items.product')));
-app.patch('/api/orders/:id/status',auth,async(req,res)=>{if(!orderStatuses.includes(req.body.status))return res.status(400).json({message:'Invalid status'});res.json(await Order.findByIdAndUpdate(req.params.id,{$set:{status:req.body.status},$push:{timeline:{status:req.body.status}}},{new:true}))});
-const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:25*1024*1024},fileFilter:(req,file,cb)=>cb(null,/^(image|video)\//.test(file.mimetype))});
-app.post('/api/media/reference',upload.single('file'),async(req,res)=>{if(!req.file||!req.file.mimetype.startsWith('image/'))return res.status(400).json({message:'Select a valid reference image'});const result=await new Promise((resolve,reject)=>{const stream=cloudinary.uploader.upload_stream({folder:'velvet-crumb/customer-references',resource_type:'image',transformation:[{width:1600,height:1600,crop:'limit',quality:'auto'}]},(e,r)=>e?reject(e):resolve(r));streamifier.createReadStream(req.file.buffer).pipe(stream)});res.status(201).json({url:result.secure_url,publicId:result.public_id,resourceType:'image'})});
-app.post('/api/media',auth,upload.single('file'),async(req,res)=>{if(!req.file)return res.status(400).json({message:'Select an image or video'});const resourceType=req.file.mimetype.startsWith('video')?'video':'image';const result=await new Promise((resolve,reject)=>{const stream=cloudinary.uploader.upload_stream({folder:'velvet-crumb/cakes',resource_type:resourceType},(e,r)=>e?reject(e):resolve(r));streamifier.createReadStream(req.file.buffer).pipe(stream)});res.status(201).json({url:result.secure_url,publicId:result.public_id,resourceType})});
-app.use((err,req,res,next)=>{console.error(err);res.status(err.status||500).json({message:err.message||'Something went wrong'})});
-const port=process.env.PORT||5000;mongoose.connect(process.env.MONGO_URI).then(async()=>{if(process.env.ADMIN_EMAIL&&process.env.ADMIN_PASSWORD){const email=process.env.ADMIN_EMAIL.toLowerCase();if(!await Admin.exists({email}))await Admin.create({name:process.env.ADMIN_NAME||'Bakery Admin',email,passwordHash:await bcrypt.hash(process.env.ADMIN_PASSWORD,12)})}await Settings.findOneAndUpdate({key:'store'},{$setOnInsert:{phone:'',whatsapp:'',instagram:'',leadTime:1,ordersOpen:true}},{upsert:true});app.listen(port,()=>console.log('API running on '+port))}).catch(e=>{console.error('MongoDB connection failed:',e.message);process.exit(1)});
+import "dotenv/config";
+import "express-async-errors";
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import multer from "multer";
+import streamifier from "streamifier";
+import { v2 as cloudinary } from "cloudinary";
+const app = express();
+const allowedOrigins =
+  process.env.CLIENT_URL === "*"
+    ? true
+    : process.env.CLIENT_URL?.split(",").map((x) => x.trim()) || true;
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(express.json({ limit: "2mb" }));
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+const mediaSchema = new mongoose.Schema(
+  {
+    url: String,
+    publicId: String,
+    resourceType: { type: String, default: "image" },
+  },
+  { _id: false },
+);
+const Product = mongoose.model(
+  "Product",
+  new mongoose.Schema(
+    {
+      name: { type: String, required: true },
+      slug: { type: String, unique: true },
+      description: String,
+      color: String,
+      emoji: String,
+      category: { type: String, required: true },
+      basePrice: { type: Number, required: true },
+      images: [mediaSchema],
+      video: mediaSchema,
+      sizes: [{ label: String, price: Number }],
+      flavours: [String],
+      featured: { type: Boolean, default: false },
+      bestseller: { type: Boolean, default: false },
+      available: { type: Boolean, default: true },
+      allowMessage: { type: Boolean, default: true },
+      allowReference: { type: Boolean, default: false },
+    },
+    { timestamps: true },
+  ),
+);
+const Category = mongoose.model(
+  "Category",
+  new mongoose.Schema(
+    {
+      name: { type: String, required: true, unique: true },
+      slug: { type: String, required: true, unique: true },
+      active: { type: Boolean, default: true },
+      sortOrder: { type: Number, default: 0 },
+    },
+    { timestamps: true },
+  ),
+);
+const orderStatuses = [
+  "New",
+  "Contacted",
+  "Confirmed",
+  "Preparing",
+  "Ready",
+  "Out for delivery",
+  "Delivered",
+  "Cancelled",
+];
+const Order = mongoose.model(
+  "Order",
+  new mongoose.Schema(
+    {
+      orderNumber: { type: String, unique: true },
+      customer: {
+        name: { type: String, required: true },
+        phone: { type: String, required: true },
+        address: { type: String, required: true },
+      },
+      items: [
+        {
+          product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+          name: String,
+          size: String,
+          flavour: String,
+          message: String,
+          quantity: { type: Number, default: 1 },
+          unitPrice: Number,
+          reference: mediaSchema,
+        },
+      ],
+      delivery: {
+        date: { type: Date, required: true },
+        time: String,
+        area: String,
+        charge: { type: Number, default: 0 },
+      },
+      instructions: String,
+      subtotal: Number,
+      total: Number,
+      paymentMethod: {
+        type: String,
+        enum: ["Cash on delivery"],
+        default: "Cash on delivery",
+      },
+      paymentStatus: {
+        type: String,
+        enum: ["Pending", "Collected", "Refunded"],
+        default: "Pending",
+      },
+      status: { type: String, enum: orderStatuses, default: "New" },
+      timeline: [
+        { status: String, note: String, at: { type: Date, default: Date.now } },
+      ],
+      archived: { type: Boolean, default: false },
+      archivedAt: Date,
+    },
+    { timestamps: true },
+  ),
+);
+const Settings = mongoose.model(
+  "Settings",
+  new mongoose.Schema(
+    {
+      key: { type: String, default: "store", unique: true },
+      phone: String,
+      whatsapp: String,
+      instagram: String,
+      leadTime: { type: Number, default: 1 },
+      ordersOpen: { type: Boolean, default: true },
+    },
+    { timestamps: true },
+  ),
+);
+const DeliveryArea = mongoose.model(
+  "DeliveryArea",
+  new mongoose.Schema(
+    {
+      name: { type: String, required: true, unique: true },
+      charge: { type: Number, required: true, min: 0 },
+      active: { type: Boolean, default: true },
+    },
+    { timestamps: true },
+  ),
+);
+const Admin = mongoose.model(
+  "Admin",
+  new mongoose.Schema(
+    {
+      name: String,
+      email: { type: String, unique: true, lowercase: true },
+      passwordHash: String,
+    },
+    { timestamps: true },
+  ),
+);
+const auth = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token)
+      return res.status(401).json({ message: "Authentication required" });
+    req.admin = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ message: "Invalid or expired session" });
+  }
+};
+const slug = (s) =>
+  s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+app.get("/api/health", (req, res) =>
+  res.json({
+    ok: true,
+    name: "Velvet Crumb API",
+    database:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+  }),
+);
+app.get("/api/store", async (req, res) => {
+  const [settings, areas] = await Promise.all([
+    Settings.findOne({ key: "store" }),
+    DeliveryArea.find({ active: true }).sort({ name: 1 }),
+  ]);
+  res.json({
+    settings: settings || {
+      phone: "",
+      whatsapp: "",
+      instagram: "",
+      leadTime: 1,
+      ordersOpen: true,
+    },
+    areas,
+  });
+});
+app.put("/api/store/settings", auth, async (req, res) =>
+  res.json(
+    await Settings.findOneAndUpdate(
+      { key: "store" },
+      { $set: req.body },
+      { new: true, upsert: true, runValidators: true },
+    ),
+  ),
+);
+app.post("/api/store/areas", auth, async (req, res) =>
+  res.status(201).json(await DeliveryArea.create(req.body)),
+);
+app.put("/api/store/areas/:id", auth, async (req, res) =>
+  res.json(
+    await DeliveryArea.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    }),
+  ),
+);
+app.delete("/api/store/areas/:id", auth, async (req, res) => {
+  await DeliveryArea.findByIdAndDelete(req.params.id);
+  res.json({ success: true });
+});
+app.post("/api/auth/change-password", auth, async (req, res) => {
+  const admin = await Admin.findById(req.admin.id);
+  if (
+    !admin ||
+    !(await bcrypt.compare(req.body.currentPassword || "", admin.passwordHash))
+  )
+    return res.status(400).json({ message: "Current password is incorrect" });
+  if (String(req.body.newPassword || "").length < 8)
+    return res
+      .status(400)
+      .json({ message: "New password must contain at least 8 characters" });
+  admin.passwordHash = await bcrypt.hash(req.body.newPassword, 12);
+  await admin.save();
+  res.json({ success: true });
+});
+app.post("/api/auth/recover", async (req, res) => {
+  if (!process.env.ADMIN_RECOVERY_CODE)
+    return res
+      .status(503)
+      .json({ message: "Password recovery is not configured" });
+  const admin = await Admin.findOne({
+    email: String(req.body.email || "").toLowerCase(),
+  });
+  if (!admin || req.body.recoveryCode !== process.env.ADMIN_RECOVERY_CODE)
+    return res
+      .status(400)
+      .json({ message: "Email or recovery code is incorrect" });
+  if (String(req.body.newPassword || "").length < 8)
+    return res
+      .status(400)
+      .json({ message: "New password must contain at least 8 characters" });
+  admin.passwordHash = await bcrypt.hash(req.body.newPassword, 12);
+  await admin.save();
+  res.json({ success: true });
+});
+app.post("/api/auth/login", async (req, res) => {
+  const admin = await Admin.findOne({ email: req.body.email.toLowerCase() });
+  if (!admin || !(await bcrypt.compare(req.body.password, admin.passwordHash)))
+    return res.status(401).json({ message: "Incorrect email or password" });
+  const token = jwt.sign(
+    { id: admin._id, email: admin.email },
+    process.env.JWT_SECRET,
+    { expiresIn: "3d" },
+  );
+  res.json({ token, admin: { name: admin.name, email: admin.email } });
+});
+app.get("/api/products", async (req, res) => {
+  const filter = {};
+  if (req.query.category) filter.category = req.query.category;
+  if (req.query.admin !== "true") filter.available = true;
+  res.json(await Product.find(filter).sort({ featured: -1, createdAt: -1 }));
+});
+app.post("/api/products", auth, async (req, res) =>
+  res.status(201).json(
+    await Product.create({
+      ...req.body,
+      slug: req.body.slug || slug(req.body.name),
+    }),
+  ),
+);
+app.put("/api/products/:id", auth, async (req, res) =>
+  res.json(
+    await Product.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    }),
+  ),
+);
+app.patch("/api/products/:id/media-order", auth, async (req, res) => {
+  const product = await Product.findById(req.params.id);
+  if (!product) return res.status(404).json({ message: "Cake not found" });
+  const order = Array.isArray(req.body.publicIds) ? req.body.publicIds : [];
+  product.images.sort(
+    (a, b) => order.indexOf(a.publicId) - order.indexOf(b.publicId),
+  );
+  await product.save();
+  res.json(product);
+});
+app.delete("/api/products/:id/media", auth, async (req, res) => {
+  const product = await Product.findById(req.params.id);
+  if (!product) return res.status(404).json({ message: "Cake not found" });
+  const { publicId, resourceType = "image" } = req.body;
+  if (!publicId)
+    return res.status(400).json({ message: "Media identifier is required" });
+  await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+  if (product.video?.publicId === publicId) product.video = undefined;
+  else product.images = product.images.filter((m) => m.publicId !== publicId);
+  await product.save();
+  res.json(product);
+});
+app.delete("/api/products/:id", auth, async (req, res) => {
+  const p = await Product.findByIdAndDelete(req.params.id);
+  for (const m of [...(p?.images || []), p?.video].filter(Boolean))
+    if (m.publicId)
+      await cloudinary.uploader.destroy(m.publicId, {
+        resource_type: m.resourceType || "image",
+      });
+  res.json({ success: true });
+});
+app.get("/api/categories", async (req, res) =>
+  res.json(await Category.find({ active: true }).sort({ sortOrder: 1 })),
+);
+app.post("/api/categories", auth, async (req, res) =>
+  res.status(201).json(
+    await Category.create({
+      ...req.body,
+      slug: req.body.slug || slug(req.body.name),
+    }),
+  ),
+);
+app.put("/api/categories/:id", auth, async (req, res) =>
+  res.json(
+    await Category.findByIdAndUpdate(req.params.id, req.body, { new: true }),
+  ),
+);
+app.delete("/api/categories/:id", auth, async (req, res) => {
+  if (mongoose.isValidObjectId(req.params.id))
+    await Category.findByIdAndDelete(req.params.id);
+  else await Category.findOneAndDelete({ name: req.params.id });
+  res.json({ success: true });
+});
+app.post("/api/orders", async (req, res) => {
+  const settings = await Settings.findOne({ key: "store" });
+  if (settings?.ordersOpen === false)
+    return res
+      .status(409)
+      .json({ message: "Online orders are temporarily paused" });
+  const { customer, items = [], delivery, instructions } = req.body;
+  if (
+    !customer?.name ||
+    !/^0\d{10}$/.test(customer?.phone || "") ||
+    !customer?.address
+  )
+    return res.status(400).json({ message: "Complete valid customer details" });
+  if (!items.length || items.length > 10)
+    return res
+      .status(400)
+      .json({ message: "Your order must contain 1 to 10 cakes" });
+  const area = await DeliveryArea.findOne({
+    name: delivery?.area,
+    active: true,
+  });
+  if (!area)
+    return res
+      .status(400)
+      .json({ message: "Select an available delivery area" });
+  const deliveryDate = new Date(delivery?.date);
+  const earliest = new Date();
+  earliest.setHours(0, 0, 0, 0);
+  earliest.setDate(earliest.getDate() + Number(settings?.leadTime || 0));
+  if (Number.isNaN(deliveryDate.getTime()) || deliveryDate < earliest)
+    return res.status(400).json({
+      message: "Choose a delivery date after the minimum preparation time",
+    });
+  const secured = [];
+  for (const item of items) {
+    if (!mongoose.isValidObjectId(item.product))
+      return res
+        .status(400)
+        .json({ message: "A selected cake is no longer available" });
+    const product = await Product.findOne({
+      _id: item.product,
+      available: true,
+    });
+    if (!product)
+      return res
+        .status(400)
+        .json({ message: "A selected cake is no longer available" });
+    const sizeOption = product.sizes?.find((s) => s.label === item.size);
+    const multiplier =
+      item.size === "2 pounds" ? 1.8 : item.size === "3 pounds" ? 2.6 : 1;
+    const unitPrice =
+      sizeOption?.price || Math.round(product.basePrice * multiplier);
+    secured.push({
+      product: product._id,
+      name: product.name,
+      size: item.size,
+      flavour: item.flavour,
+      message:
+        product.allowMessage !== false
+          ? String(item.message || "").slice(0, 45)
+          : "",
+      quantity: Math.max(1, Math.min(10, Number(item.quantity) || 1)),
+      unitPrice,
+      reference:
+        product.allowReference || product.category === "Custom"
+          ? item.reference
+          : undefined,
+    });
+  }
+  const subtotal = secured.reduce(
+    (sum, item) => sum + item.unitPrice * item.quantity,
+    0,
+  );
+  const total = subtotal + area.charge;
+  const orderNumber = "VC-" + Date.now().toString().slice(-8);
+  const order = await Order.create({
+    orderNumber,
+    customer: {
+      name: String(customer.name).trim(),
+      phone: customer.phone,
+      address: String(customer.address).trim(),
+    },
+    items: secured,
+    delivery: {
+      date: deliveryDate,
+      time: String(delivery.time || ""),
+      area: area.name,
+      charge: area.charge,
+    },
+    instructions: String(instructions || "").slice(0, 500),
+    subtotal,
+    total,
+    paymentMethod: "Cash on delivery",
+    timeline: [{ status: "New" }],
+  });
+  res.status(201).json(order);
+});
+app.get("/api/orders", auth, async (req, res) =>
+  res.json(
+    await Order.find(
+      req.query.archived === "true"
+        ? { archived: true }
+        : { archived: { $ne: true } },
+    )
+      .sort({ createdAt: -1 })
+      .populate("items.product", "name images"),
+  ),
+);
+app.get("/api/orders/track/:number", async (req, res) => {
+  const order = await Order.findOne({
+    orderNumber: req.params.number.toUpperCase(),
+  }).select(
+    "orderNumber status delivery items.name total paymentMethod paymentStatus timeline createdAt",
+  );
+  if (!order) return res.status(404).json({ message: "Order not found" });
+  res.json(order);
+});
+app.get("/api/orders/:id", auth, async (req, res) =>
+  res.json(await Order.findById(req.params.id).populate("items.product")),
+);
+app.patch("/api/orders/:id/status", auth, async (req, res) => {
+  if (!orderStatuses.includes(req.body.status))
+    return res.status(400).json({ message: "Invalid status" });
+  res.json(
+    await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: { status: req.body.status },
+        $push: { timeline: { status: req.body.status } },
+      },
+      { new: true },
+    ),
+  );
+});
+app.patch("/api/orders/:id/payment", auth, async (req, res) => {
+  const allowed = ["Pending", "Collected", "Refunded"];
+  if (!allowed.includes(req.body.paymentStatus))
+    return res.status(400).json({ message: "Invalid payment status" });
+  const order = await Order.findByIdAndUpdate(
+    req.params.id,
+    {
+      $set: { paymentStatus: req.body.paymentStatus },
+      $push: {
+        timeline: {
+          status: "Payment " + req.body.paymentStatus,
+          note: "Cash on delivery",
+        },
+      },
+    },
+    { new: true },
+  );
+  if (!order) return res.status(404).json({ message: "Order not found" });
+  res.json(order);
+});
+app.patch("/api/orders/:id/archive", auth, async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  if (!order) return res.status(404).json({ message: "Order not found" });
+  if (!["Delivered", "Cancelled"].includes(order.status))
+    return res
+      .status(409)
+      .json({ message: "Only delivered or cancelled orders can be archived" });
+  order.archived = true;
+  order.archivedAt = new Date();
+  order.timeline.push({ status: "Archived" });
+  await order.save();
+  res.json(order);
+});
+app.delete("/api/orders/:id", auth, async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  if (!order) return res.status(404).json({ message: "Order not found" });
+  if (!order.archived || !["Delivered", "Cancelled"].includes(order.status))
+    return res
+      .status(409)
+      .json({ message: "Archive a completed order before deleting it" });
+  await order.deleteOne();
+  res.json({ success: true });
+});
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (req, file, cb) =>
+    cb(null, /^(image|video)\//.test(file.mimetype)),
+});
+app.post("/api/media/reference", upload.single("file"), async (req, res) => {
+  if (!req.file || !req.file.mimetype.startsWith("image/"))
+    return res.status(400).json({ message: "Select a valid reference image" });
+  const result = await new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "velvet-crumb/customer-references",
+        resource_type: "image",
+        transformation: [
+          { width: 1600, height: 1600, crop: "limit", quality: "auto" },
+        ],
+      },
+      (e, r) => (e ? reject(e) : resolve(r)),
+    );
+    streamifier.createReadStream(req.file.buffer).pipe(stream);
+  });
+  res.status(201).json({
+    url: result.secure_url,
+    publicId: result.public_id,
+    resourceType: "image",
+  });
+});
+app.post("/api/media", auth, upload.single("file"), async (req, res) => {
+  if (!req.file)
+    return res.status(400).json({ message: "Select an image or video" });
+  const resourceType = req.file.mimetype.startsWith("video")
+    ? "video"
+    : "image";
+  const result = await new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "velvet-crumb/cakes", resource_type: resourceType },
+      (e, r) => (e ? reject(e) : resolve(r)),
+    );
+    streamifier.createReadStream(req.file.buffer).pipe(stream);
+  });
+  res
+    .status(201)
+    .json({ url: result.secure_url, publicId: result.public_id, resourceType });
+});
+app.use((err, req, res, next) => {
+  console.error(err);
+  res
+    .status(err.status || 500)
+    .json({ message: err.message || "Something went wrong" });
+});
+const port = process.env.PORT || 5000;
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(async () => {
+    if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+      const email = process.env.ADMIN_EMAIL.toLowerCase();
+      if (!(await Admin.exists({ email })))
+        await Admin.create({
+          name: process.env.ADMIN_NAME || "Bakery Admin",
+          email,
+          passwordHash: await bcrypt.hash(process.env.ADMIN_PASSWORD, 12),
+        });
+    }
+    await Settings.findOneAndUpdate(
+      { key: "store" },
+      {
+        $setOnInsert: {
+          phone: "",
+          whatsapp: "",
+          instagram: "",
+          leadTime: 1,
+          ordersOpen: true,
+        },
+      },
+      { upsert: true },
+    );
+    app.listen(port, () => console.log("API running on " + port));
+  })
+  .catch((e) => {
+    console.error("MongoDB connection failed:", e.message);
+    process.exit(1);
+  });
