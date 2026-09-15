@@ -200,13 +200,23 @@ function ProductArt({ product, large = false }) {
       <div className="orb one" />
       <div className="orb two" />
       {image ? (
-        <motion.img
-          src={image}
-          alt={product.name}
-          loading={large ? "eager" : "lazy"}
-          whileHover={{ scale: 1.05 }}
-          transition={spring}
-        />
+        <>
+          <img
+            className="photo-backdrop"
+            src={image}
+            alt=""
+            aria-hidden="true"
+          />
+          <motion.img
+            className="photo-main"
+            src={image}
+            alt={product.name}
+            loading={large ? "eager" : "lazy"}
+            style={{ objectFit: "contain", objectPosition: "center" }}
+            whileHover={{ scale: 1.025 }}
+            transition={spring}
+          />
+        </>
       ) : (
         <motion.div
           className="cake-emoji"
