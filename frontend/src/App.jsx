@@ -368,7 +368,11 @@ function Store({
           </button>
         </nav>
         <div className="header-actions">
-          <button className="icon-btn mobile" onClick={() => setMenu(!menu)}>
+          <button
+            className="icon-btn mobile"
+            onClick={() => setMenu(!menu)}
+            aria-label="Open navigation menu"
+          >
             <Menu />
           </button>
           <button
@@ -517,7 +521,10 @@ function Store({
                           <small>Starting from</small>
                           <strong>Rs. {money(p.price)}</strong>
                         </div>
-                        <button onClick={() => setSelected(p)}>
+                        <button
+                          onClick={() => setSelected(p)}
+                          aria-label={`Customize ${p.name}`}
+                        >
                           <Plus size={19} />
                         </button>
                       </div>
