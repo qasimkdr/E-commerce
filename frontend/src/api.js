@@ -18,5 +18,6 @@ export const api={
  updateSettings:body=>request('/store/settings',{method:'PUT',body:JSON.stringify(body)}),
  createArea:body=>request('/store/areas',{method:'POST',body:JSON.stringify(body)}),
  deleteArea:id=>request('/store/areas/'+id,{method:'DELETE'}),
- upload:file=>{const body=new FormData();body.append('file',file);return request('/media',{method:'POST',body})}
+ upload:file=>{const body=new FormData();body.append('file',file);return request('/media',{method:'POST',body})},
+ uploadReference:file=>{const body=new FormData();body.append('file',file);return request('/media/reference',{method:'POST',body})}
 };
