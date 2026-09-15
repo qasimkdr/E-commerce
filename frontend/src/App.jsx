@@ -1253,6 +1253,9 @@ function Admin({
   const [passwordMode, setPasswordMode] = useState(null);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const [productSubmitting, setProductSubmitting] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState(null);
+  const [selectedMedia, setSelectedMedia] = useState([]);
   useEffect(() => {
     const expired = () => {
       setSessionExpired(true);
@@ -1347,12 +1350,28 @@ function Admin({
   };
   const saveProduct = async (e) => {
     e.preventDefault();
+    if (productSubmitting) return;
+    setProductSubmitting(true);
+    setUploadStatus({ stage: "Preparing cake details…", percent: 0 });
     const data = new FormData(e.currentTarget);
     try {
       let images = editor.images || [];
       let video = editor.video;
-      for (const file of data.getAll("media").filter((f) => f.size)) {
-        const uploaded = await api.upload(file);
+      const files = data.getAll("media").filter((f) => f.size);
+      for (let index = 0; index < files.length; index++) {
+        const file = files[index];
+        setUploadStatus({
+          stage: `Uploading ${index + 1} of ${files.length}: ${file.name}`,
+          percent: Math.round((index / files.length) * 100),
+        });
+        const uploaded = await api.upload(file, (filePercent) =>
+          setUploadStatus({
+            stage: `Uploading ${index + 1} of ${files.length}: ${file.name}`,
+            percent: Math.round(
+              ((index + filePercent / 100) / files.length) * 100,
+            ),
+          }),
+        );
         if (uploaded.resourceType === "video") {
           if (editor._id && video?.publicId)
             await api.deleteMedia(editor._id, video.publicId, "video");
@@ -1386,6 +1405,7 @@ function Admin({
         allowMessage: data.get("allowMessage") === "on",
         allowReference: data.get("allowReference") === "on",
       };
+      setUploadStatus({ stage: "Saving cake to the store…", percent: 100 });
       const saved = editor._id
         ? await api.updateProduct(editor._id, payload)
         : await api.createProduct(payload);
@@ -1402,12 +1422,17 @@ function Admin({
           : [item, ...p],
       );
       setEditor(null);
+      setSelectedMedia([]);
+      setUploadStatus(null);
       tell(
         editor._id ? "Cake updated" : "Cake added",
         "Changes are now live for every customer.",
       );
     } catch (err) {
+      setUploadStatus({ stage: err.message, percent: 0, error: true });
       tell("Save failed", err.message);
+    } finally {
+      setProductSubmitting(false);
     }
   };
   const removeMedia = async (media, type = "image") => {
@@ -2142,7 +2167,12 @@ function Admin({
               <button
                 type="button"
                 className="close"
-                onClick={() => setEditor(null)}
+                disabled={productSubmitting}
+                onClick={() => {
+                  setEditor(null);
+                  setUploadStatus(null);
+                  setSelectedMedia([]);
+                }}
               >
                 <X />
               </button>
@@ -2291,8 +2321,61 @@ function Admin({
                   multiple
                   type="file"
                   accept="image/*,video/*"
+                  disabled={productSubmitting}
+                  onChange={(e) => {
+                    const files = [...e.target.files];
+                    setSelectedMedia(
+                      files.map((f) => ({
+                        name: f.name,
+                        size: f.size,
+                        type: f.type,
+                      })),
+                    );
+                    setUploadStatus(
+                      files.length
+                        ? {
+                            stage: `${files.length} file${files.length > 1 ? "s" : ""} ready to upload`,
+                            percent: 0,
+                          }
+                        : null,
+                    );
+                  }}
                 />
               </label>
+              {selectedMedia.length > 0 && (
+                <div className="selected-media-list" aria-live="polite">
+                  {selectedMedia.map((file, i) => (
+                    <div key={file.name + i}>
+                      <span>
+                        {file.type.startsWith("video/") ? "Video" : "Image"}
+                      </span>
+                      <strong>{file.name}</strong>
+                      <small>{(file.size / 1024 / 1024).toFixed(1)} MB</small>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {uploadStatus && (
+                <div
+                  className={`upload-progress ${uploadStatus.error ? "upload-error" : ""}`}
+                  role="status"
+                  aria-live="polite"
+                >
+                  <div>
+                    <strong>{uploadStatus.stage}</strong>
+                    <span>{uploadStatus.percent}%</span>
+                  </div>
+                  <div className="upload-progress-track">
+                    <i style={{ width: `${uploadStatus.percent}%` }} />
+                  </div>
+                  {uploadStatus.error && (
+                    <small>
+                      Your cake details are still here. Fix the issue and press
+                      Try again.
+                    </small>
+                  )}
+                </div>
+              )}
               {(editor.images?.length || editor.video) && (
                 <div className="media-manager">
                   {editor.images?.map((m, i) => (
@@ -2350,7 +2433,15 @@ function Admin({
                   )}
                 </div>
               )}
-              <button className="primary wide">Save cake</button>
+              <button className="primary wide" disabled={productSubmitting}>
+                {productSubmitting
+                  ? uploadStatus?.percent < 100
+                    ? `Uploading… ${uploadStatus?.percent || 0}%`
+                    : "Saving…"
+                  : uploadStatus?.error
+                    ? "Try again"
+                    : "Save cake"}
+              </button>
             </motion.form>
           </motion.div>
         )}

@@ -19,6 +19,44 @@ const request = async (path, options = {}) => {
   if (!response.ok) throw new Error(data.message || "Request failed");
   return data;
 };
+const uploadRequest = (path, file, onProgress) =>
+  new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const body = new FormData();
+    const token = localStorage.getItem("vc-token");
+    body.append("file", file);
+    xhr.open("POST", BASE + path);
+    if (token) xhr.setRequestHeader("Authorization", "Bearer " + token);
+    xhr.timeout = 120000;
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onProgress)
+        onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+    xhr.onload = () => {
+      const data = (() => {
+        try {
+          return JSON.parse(xhr.responseText || "{}");
+        } catch {
+          return {};
+        }
+      })();
+      if (xhr.status === 401 && token) {
+        localStorage.removeItem("vc-token");
+        window.dispatchEvent(new Event("vc-session-expired"));
+      }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(data);
+      reject(new Error(data.message || `Upload failed (${xhr.status})`));
+    };
+    xhr.onerror = () =>
+      reject(new Error("Upload failed. Check your connection and try again."));
+    xhr.ontimeout = () =>
+      reject(
+        new Error(
+          "Upload timed out. Try a smaller file or a stronger connection.",
+        ),
+      );
+    xhr.send(body);
+  });
 export const api = {
   health: () => request("/health"),
   store: () => request("/store"),
@@ -79,14 +117,7 @@ export const api = {
   createArea: (body) =>
     request("/store/areas", { method: "POST", body: JSON.stringify(body) }),
   deleteArea: (id) => request("/store/areas/" + id, { method: "DELETE" }),
-  upload: (file) => {
-    const body = new FormData();
-    body.append("file", file);
-    return request("/media", { method: "POST", body });
-  },
-  uploadReference: (file) => {
-    const body = new FormData();
-    body.append("file", file);
-    return request("/media/reference", { method: "POST", body });
-  },
+  upload: (file, onProgress) => uploadRequest("/media", file, onProgress),
+  uploadReference: (file, onProgress) =>
+    uploadRequest("/media/reference", file, onProgress),
 };
