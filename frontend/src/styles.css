@@ -1932,9 +1932,29 @@ tbody tr:hover {
 .product-art.has-photo > img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   position: relative;
   z-index: 2;
+  border-radius: inherit;
+}
+.product-art.has-photo {
+  background: radial-gradient(
+    circle at center,
+    #fff 0,
+    #f7ece9 72%,
+    #eedfda 100%
+  );
+  padding: 7px;
+}
+.product-art.has-photo.large {
+  padding: 14px;
+}
+.product-modal .product-art.has-photo {
+  min-height: 300px;
+}
+.admin-products .product-art.has-photo {
+  padding: 4px;
 }
 .product-art.has-photo .orb,
 .product-art.has-photo .plate {
