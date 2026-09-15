@@ -299,6 +299,7 @@ function Store({
       },
     ]);
     setSelected(null);
+    setCheckout(true);
   };
   const quantity = (lineId, change) =>
     setCart((items) =>
@@ -347,8 +348,7 @@ function Store({
       setOrders((x) => [order, ...x]);
       setCheckout(false);
       setCart([]);
-      setSuccess(order.id);
-      setTimeout(() => setSuccess(false), 5000);
+      setSuccess({ id: order.id, total: order.total });
     } catch (err) {
       setMessage({ title: "Order not placed", text: err.message, error: true });
       setTimeout(() => setMessage(null), 4500);
@@ -532,10 +532,11 @@ function Store({
                           <strong>Rs. {money(p.price)}</strong>
                         </div>
                         <button
+                          className="order-now"
                           onClick={() => setSelected(p)}
-                          aria-label={`Customize ${p.name}`}
+                          aria-label={`Order ${p.name}`}
                         >
-                          <Plus size={19} />
+                          Order now <ArrowRight size={17} />
                         </button>
                       </div>
                     </div>
@@ -810,7 +811,7 @@ function Store({
                   </label>
                 )}
                 <button className="primary wide">
-                  Add to order · from Rs. {money(selected.price)}
+                  Continue to checkout · from Rs. {money(selected.price)}
                 </button>
               </div>
             </motion.form>
@@ -1089,20 +1090,74 @@ function Store({
       <AnimatePresence>
         {success && (
           <motion.div
-            className="toast"
-            initial={{ y: -30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+            className="modal-wrap"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="order-success-title"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <span>
-              <Check />
-            </span>
-            <div>
-              <strong>Order {success} received!</strong>
-              <small>
-                Our team will contact you within 24 hours to confirm your order.
-              </small>
-            </div>
+            <motion.div
+              className="modal order-success"
+              initial={{ scale: 0.85, y: 35, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 250, damping: 22 }}
+            >
+              <button
+                type="button"
+                className="close"
+                onClick={() => setSuccess(false)}
+                aria-label="Close order confirmation"
+              >
+                <X />
+              </button>
+              <div className="success-sparkles" aria-hidden="true">
+                <Sparkles />
+                <span className="success-cake">
+                  <CakeSlice />
+                </span>
+                <Sparkles />
+              </div>
+              <span className="eyebrow">ORDER REQUEST RECEIVED</span>
+              <h2 id="order-success-title">
+                Your cake request is in the oven!
+              </h2>
+              <p className="success-copy">
+                Thank you for choosing Velvet Crumb. Our bakery team will
+                contact you on WhatsApp within <b>24 hours</b> to confirm the
+                design, delivery time and final details.
+              </p>
+              <div className="order-number-card">
+                <small>Your order number</small>
+                <strong>{success.id}</strong>
+                <span>Keep this number for tracking your order</span>
+              </div>
+              <div className="success-note">
+                <Check size={17} /> Cash on delivery — no payment taken yet
+              </div>
+              <div className="success-actions">
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => {
+                    setTrackId(success.id);
+                    setSuccess(false);
+                    setTracking(true);
+                  }}
+                >
+                  Track order
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => setSuccess(false)}
+                >
+                  Continue browsing <ArrowRight size={17} />
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
